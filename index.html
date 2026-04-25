@@ -36,6 +36,7 @@
         .status-banned { color: #ef4444; text-decoration: line-through; }
         .role-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 5px; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
+        .admin-bg { background: #a855f7; color: white; }
         
         .community-btn { background: #ffffff; color: #000000; margin: 20px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 10px; }
         .pass-text { font-family: monospace; color: #fbbf24; background: rgba(251, 191, 36, 0.1); padding: 2px 5px; border-radius: 4px; }
@@ -81,7 +82,6 @@
     </div>
 
     <script>
-        // All your info is now plugged in correctly!
         const firebaseConfig = {
             apiKey: "AIzaSyAjxklCo7h1l6UQwtLd-K7k4p_fe5SMh1k",
             authDomain: "nls-studio.firebaseapp.com",
@@ -98,9 +98,118 @@
         let accounts = [];
         let currentUser = null;
 
-        // Auto-load data from Cloud
         db.ref('accounts').on('value', (snapshot) => {
             const data = snapshot.val();
+            if (data) {
+                accounts = data;
+            } else {
+                accounts = [
+                    { name: "BookOfCuteBunny", pass: "Syafa", role: "admin", status: "Active" },
+                    { name: "Guest", pass: "10", role: "user", status: "Active" }
+                ];
+                db.ref('accounts').set(accounts);
+            }
+            if(currentUser) renderTable(); 
+        });
+
+        function handleLogin() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+
+            if (u === "NuazGamespot10" && p === "Malaysia1957") {
+                currentUser = { name: u, role: "owner" };
+                showDashboard();
+            } else {
+                const found = accounts.find(a => a.name === u && a.pass === p);
+                if (found) {
+                    if (found.status === "Banned") {
+                        showScreen('banned-screen');
+                    } else {
+                        currentUser = found;
+                        showDashboard();
+                    }
+                } else {
+                    alert("Incorrect Login Details");
+                }
+            }
+        }
+
+        function toggleBan(idx) {
+            accounts[idx].status = accounts[idx].status === "Active" ? "Banned" : "Active";
+            db.ref('accounts').set(accounts);
+        }
+
+        function showDashboard() {
+            showScreen('dashboard');
+            const welcome = document.getElementById('welcome-msg');
+            const display = document.getElementById('user-display');
+            const passHeader = document.getElementById('pass-header');
+
+            if (currentUser.role === "owner") {
+                welcome.innerText = "Welcome Back Owner!";
+                display.innerHTML = `@${currentUser.name} <span class="role-badge owner-bg">OWNER</span>`;
+                passHeader.style.display = "table-cell";
+            } else if (currentUser.role === "admin") {
+                welcome.innerText = "Welcome Admin!";
+                display.innerHTML = `@${currentUser.name} <span class="role-badge admin-bg">ADMIN</span>`;
+                passHeader.style.display = "none";
+            } else {
+                welcome.innerText = "Welcome!";
+                display.innerHTML = `@${currentUser.name}`;
+                passHeader.style.display = "none";
+            }
+            renderTable();
+        }
+
+        function renderTable() {
+            const list = document.getElementById('user-list');
+            list.innerHTML = "";
+            accounts.forEach((acc, index) => {
+                // Admins see everyone but can't manage other admins or the owner.
+                // Normal users only see themselves.
+                if (currentUser.role === "user" && acc.name !== currentUser.name) return;
+                
+                const isBanned = acc.status === "Banned";
+                const row = document.createElement('tr');
+                
+                let roleBadge = acc.role.toUpperCase();
+                let badgeClass = acc.role === "admin" ? "admin-bg" : "";
+                
+                let rowContent = `<td>${acc.name}</td><td><span class="role-badge ${badgeClass}">${roleBadge}</span></td>`;
+                
+                if (currentUser.role === "owner") {
+                    rowContent += `<td><span class="pass-text">${acc.pass}</span></td>`;
+                }
+
+                rowContent += `<td class="${isBanned ? 'status-banned' : 'status-active'}">${acc.status}</td>`;
+                
+                // BAN BUTTON LOGIC
+                if (currentUser.role === "owner") {
+                    // Owner can ban anyone
+                    rowContent += `<td><button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button></td>`;
+                } else if (currentUser.role === "admin") {
+                    // Admins can ban Users, but not other Admins or Owners
+                    if (acc.role === "user") {
+                        rowContent += `<td><button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button></td>`;
+                    } else {
+                        rowContent += `<td>-</td>`;
+                    }
+                } else {
+                    rowContent += `<td>-</td>`;
+                }
+                
+                row.innerHTML = rowContent;
+                list.appendChild(row);
+            });
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById(id).classList.add('active-screen');
+        }
+    </script>
+</body>
+</html>
             if (data) {
                 accounts = data;
             } else {
