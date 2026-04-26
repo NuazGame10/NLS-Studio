@@ -25,25 +25,32 @@
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
+        /* MODAL */
         #ban-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 25px; border-radius: 12px; border: 2px solid #ef4444; width: 90%; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 
         #staff-panel { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .minimize-btn { background: #334155; color: #f8fafc; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
+        
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { color: #94a3b8; font-size: 0.75rem; padding: 10px; border-bottom: 1px solid #334155; text-transform: uppercase; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
         
         .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .badge-clickable { cursor: pointer; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
         .dev-bg { background: #0ea5e9; color: white; }
         .admin-bg { background: #a855f7; color: white; }
         .tester-bg { background: #10b981; color: white; }
         .user-bg { background: #64748b; color: white; }
         
-        .ban-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .unban-btn { background: #10b981; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .action-cell { display: flex; gap: 5px; }
+        .ban-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; }
+        .remove-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; background: #475569; }
 
-        .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
+        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; border: none; cursor: pointer; }
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
+        .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -52,14 +59,14 @@
         <div id="ban-modal">
             <h3 style="color: #ef4444; margin-bottom: 15px;">Moderate Account</h3>
             <p id="ban-target-name" style="margin-bottom: 10px; font-weight: bold;"></p>
-            <textarea id="ban-reason" placeholder="Type reason here..."></textarea>
+            <textarea id="ban-reason" placeholder="Reason..."></textarea>
             <select id="ban-duration">
                 <option value="1">1 Minute</option>
                 <option value="60">1 Hour</option>
                 <option value="1440">1 Day</option>
                 <option value="-1">Forever</option>
             </select>
-            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">BAN PLAYER</button>
+            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">CONFIRM BAN</button>
             <button class="logout-btn" onclick="closeBanModal()">Cancel</button>
         </div>
 
@@ -72,7 +79,7 @@
         </div>
 
         <div id="signup-screen" class="screen">
-            <h2 style="margin-bottom: 15px;">NLS Account Sign Up</h2>
+            <h2>NLS Account Sign Up</h2>
             <div class="birthday-row">
                 <select id="birth-day"></select>
                 <select id="birth-month">
@@ -93,16 +100,25 @@
         <div id="dashboard" class="screen">
             <h2 id="welcome-msg">Welcome</h2>
             <p id="user-display" style="margin-bottom: 20px;"></p>
+            
             <div id="panel-container" style="display:none;">
+                <div class="panel-header">
+                    <p style="font-size: 0.7rem; color: #94a3b8;" id="panel-hint"></p>
+                    <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">Minimize Panel</button>
+                </div>
                 <div id="staff-panel">
                     <table>
                         <thead>
-                            <tr><th>User</th><th>Rank</th><th>Status</th><th>Actions</th></tr>
+                            <tr><th>User</th><th>Rank</th><th id="pass-header" style="display:none;">Pass</th><th>Status</th><th>Actions</th></tr>
                         </thead>
                         <tbody id="user-list"></tbody>
                     </table>
                 </div>
             </div>
+
+            <button id="main-action-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
+                Visit NLS Studios Community
+            </button>
             <button class="logout-btn" onclick="handleLogout()">Logout</button>
         </div>
 
@@ -149,13 +165,14 @@
                     const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
 
                     if(isBanned) {
-                        const reason = freshData.banData ? freshData.banData.reason : "Violation of rules.";
-                        const expiry = freshData.banData ? freshData.banData.expiry : -1;
-                        showBanUI(reason, expiry);
+                        showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
                         return;
                     } 
-                    
-                    if(!currentUser) {
+
+                    if(!isBanned && document.getElementById('banned-screen').classList.contains('active-screen')) {
+                        currentUser = freshData;
+                        showDashboard();
+                    } else if(!currentUser) {
                         currentUser = freshData;
                         showDashboard();
                     } else {
@@ -172,8 +189,7 @@
             const p = document.getElementById('reg-password').value;
             if(!u || !e || !p) return alert("Fill all fields");
             if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
-            const newUser = { name: u, pass: p, email: e, role: "user", status: "Active" };
-            accounts.push(newUser);
+            accounts.push({ name: u, pass: p, email: e, role: "user", status: "Active" });
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
         }
 
@@ -182,17 +198,7 @@
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
             if (f) {
-                const now = Date.now();
-                const isBanned = f.status === "Banned" || (f.banData && (f.banData.expiry === -1 || f.banData.expiry > now));
-                if(isBanned) {
-                    const reason = f.banData ? f.banData.reason : "Violation of rules.";
-                    const expiry = f.banData ? f.banData.expiry : -1;
-                    showBanUI(reason, expiry);
-                } else {
-                    currentUser = f;
-                    localStorage.setItem('nls_session', JSON.stringify(f));
-                    showDashboard();
-                }
+                localStorage.setItem('nls_session', JSON.stringify(f));
             } else alert("Incorrect Login");
         }
 
@@ -200,10 +206,21 @@
             showScreen('dashboard');
             const d = document.getElementById('user-display');
             const container = document.getElementById('panel-container');
-            const colors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+            const actionBtn = document.getElementById('main-action-btn');
             const role = currentUser.role || "user";
+            const colors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+            
             d.innerHTML = `@${currentUser.name} <span class="role-badge ${colors[role]}">${role.toUpperCase()}</span>`;
-            if (["owner", "admin", "developer", "tester"].includes(role)) container.style.display = "block";
+            
+            if (role === "developer") actionBtn.innerText = "Continue Developing";
+            else if (role === "tester") actionBtn.innerText = "Continue Testing NLS Games";
+            else actionBtn.innerText = "Visit NLS Studios Community";
+
+            if (["owner", "admin", "developer", "tester"].includes(role)) {
+                container.style.display = "block";
+                document.getElementById('pass-header').style.display = role === "owner" ? "table-cell" : "none";
+                document.getElementById('panel-hint').innerText = `${role.toUpperCase()} VIEW`;
+            }
             renderTable();
         }
 
@@ -216,23 +233,44 @@
                 const viewer = currentUser.role;
                 let canSee = false;
                 if (viewer === "owner") canSee = true;
-                if (viewer === "developer" && ["admin", "tester", "user"].includes(acc.role)) canSee = true;
-                if (viewer === "admin" && ["tester", "user"].includes(acc.role)) canSee = true;
-                if (viewer === "tester" && acc.role === "user") canSee = true;
+                else if (viewer === "developer" && ["admin", "tester", "user"].includes(acc.role)) canSee = true;
+                else if (viewer === "admin" && ["tester", "user"].includes(acc.role)) canSee = true;
+                else if (viewer === "tester" && acc.role === "user") canSee = true;
 
                 if (canSee && acc.name !== currentUser.name) {
                     const isBanned = acc.status === "Banned" || (acc.banData && (acc.banData.expiry === -1 || acc.banData.expiry > Date.now()));
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${acc.name}</td>
-                        <td><span class="role-badge ${colors[acc.role]}">${acc.role.toUpperCase()}</span></td>
-                        <td style="color:${isBanned ? '#ef4444' : '#4ade80'}">${isBanned ? 'Banned' : 'Active'}</td>
-                        <td>
-                            ${isBanned ? `<button class="unban-btn" onclick="unbanUser(${index})">Unban</button>` : `<button class="ban-btn" onclick="openBanModal(${index})">Ban</button>`}
-                        </td>`;
+                    let clickable = viewer === "owner" ? "badge-clickable" : "";
+                    
+                    let content = `<td>${acc.name}</td>
+                        <td><span class="role-badge ${colors[acc.role]} ${clickable}" onclick="${viewer === 'owner' ? `toggleRole(${index})` : ''}">${acc.role.toUpperCase()}</span></td>`;
+                    
+                    if (viewer === "owner") content += `<td style="color:#fbbf24">${acc.pass}</td>`;
+                    
+                    content += `<td style="color:${isBanned ? '#ef4444' : '#4ade80'}">${isBanned ? 'Banned' : 'Active'}</td>
+                        <td class="action-cell">
+                            <button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="${isBanned ? `unbanUser(${index})` : `openBanModal(${index})`}">${isBanned ? 'Unban' : 'Ban'}</button>`;
+                    
+                    if (viewer === "owner") content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
+                    
+                    row.innerHTML = content + `</td>`;
                     list.appendChild(row);
                 }
             });
+        }
+
+        function togglePanelVisibility() {
+            const panel = document.getElementById('staff-panel');
+            const btn = document.getElementById('toggle-panel-btn');
+            panel.style.display = panel.style.display === "none" ? "block" : "none";
+            btn.innerText = panel.style.display === "none" ? "View Staff Panel" : "Minimize Panel";
+        }
+
+        function toggleRole(idx) {
+            const roles = ["user", "tester", "admin", "developer"];
+            let nextIdx = (roles.indexOf(accounts[idx].role) + 1) % roles.length;
+            accounts[idx].role = roles[nextIdx];
+            db.ref('accounts').set(accounts);
         }
 
         function openBanModal(idx) {
@@ -258,10 +296,17 @@
             db.ref('accounts').set(accounts);
         }
 
+        function removeAccount(idx) {
+            if(confirm("Delete account permanently?")) {
+                accounts.splice(idx, 1);
+                db.ref('accounts').set(accounts);
+            }
+        }
+
         function showBanUI(r, e) {
             showScreen('banned-screen');
             document.getElementById('display-ban-reason').innerText = r;
-            document.getElementById('display-ban-time').innerText = (e === -1) ? "Permanent" : new Date(e).toLocaleString();
+            document.getElementById('display-ban-time').innerText = (e === -1) ? "Forever" : new Date(e).toLocaleString();
         }
 
         function handleLogout() {
@@ -276,3 +321,4 @@
     </script>
 </body>
 </html>
+
