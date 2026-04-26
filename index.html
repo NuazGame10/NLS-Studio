@@ -18,11 +18,13 @@
         .btn-primary { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .btn-secondary { background: transparent; color: #38bdf8; border: 1px solid #38bdf8; margin-top: 10px; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
+        .birthday-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .birthday-row select { margin-bottom: 0; }
+
         .screen { display: none; }
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* BAN REASON MENU */
         #ban-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 25px; border-radius: 12px; border: 2px solid #ef4444; width: 90%; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 
         #staff-panel { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto; }
@@ -66,12 +68,31 @@
             <input type="text" id="login-username" placeholder="Username">
             <input type="password" id="login-password" placeholder="Password">
             <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+            <button class="btn-secondary" onclick="showScreen('signup-screen')">Create New Account</button>
+        </div>
+
+        <div id="signup-screen" class="screen">
+            <h2 style="margin-bottom: 15px;">NLS Account Sign Up</h2>
+            <div class="birthday-row">
+                <select id="birth-day"></select>
+                <select id="birth-month">
+                    <option value="Jan">Jan</option><option value="Feb">Feb</option><option value="Mar">Mar</option>
+                    <option value="Apr">Apr</option><option value="May">May</option><option value="Jun">Jun</option>
+                    <option value="Jul">Jul</option><option value="Aug">Aug</option><option value="Sep">Sep</option>
+                    <option value="Oct">Oct</option><option value="Nov">Nov</option><option value="Dec">Dec</option>
+                </select>
+                <select id="birth-year"></select>
+            </div>
+            <input type="text" id="reg-username" placeholder="Username">
+            <input type="email" id="reg-email" placeholder="Email">
+            <input type="password" id="reg-password" placeholder="Password">
+            <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
+            <button class="logout-btn" onclick="showScreen('login-screen')">Back to Login</button>
         </div>
 
         <div id="dashboard" class="screen">
             <h2 id="welcome-msg">Welcome</h2>
             <p id="user-display" style="margin-bottom: 20px;"></p>
-            
             <div id="panel-container" style="display:none;">
                 <div id="staff-panel">
                     <table>
@@ -109,7 +130,13 @@
         let currentUser = null;
         let selectedUserIdx = null;
 
-        // REAL-TIME LISTENER (FOR INSTANT BAN/UNBAN)
+        // BIRTHDAY DROPDOWNS
+        const dS = document.getElementById('birth-day');
+        const yS = document.getElementById('birth-year');
+        for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
+        for(let i=2026; i>=1950; i--) yS.innerHTML += `<option value="${i}">${i}</option>`;
+
+        // REAL-TIME LISTENER
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
             const session = localStorage.getItem('nls_session');
@@ -123,13 +150,11 @@
                     const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
 
                     if(isBanned) {
-                        // Player is banned -> Show banned window instantly
-                        const reason = freshData.banData ? freshData.banData.reason : "No reason provided.";
+                        const reason = freshData.banData ? freshData.banData.reason : "Violation of rules.";
                         const expiry = freshData.banData ? freshData.banData.expiry : -1;
                         showBanUI(reason, expiry);
                         return;
                     } else if (document.getElementById('banned-screen').classList.contains('active-screen')) {
-                        // Player was unbanned -> Go to dashboard instantly without refresh
                         currentUser = freshData;
                         showDashboard();
                     } else {
@@ -140,6 +165,17 @@
             }
             if(currentUser) renderTable(); 
         });
+
+        function handleSignUp() {
+            const u = document.getElementById('reg-username').value;
+            const e = document.getElementById('reg-email').value;
+            const p = document.getElementById('reg-password').value;
+            if(!u || !e || !p) return alert("Fill all fields");
+            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
+            const newUser = { name: u, pass: p, email: e, role: "user", status: "Active" };
+            accounts.push(newUser);
+            db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
+        }
 
         function handleLogin() {
             const u = document.getElementById('login-username').value;
@@ -154,9 +190,8 @@
             showScreen('dashboard');
             const d = document.getElementById('user-display');
             const container = document.getElementById('panel-container');
-            const role = currentUser.role || "user";
             const colors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
-            
+            const role = currentUser.role || "user";
             d.innerHTML = `@${currentUser.name} <span class="role-badge ${colors[role]}">${role.toUpperCase()}</span>`;
             if (["owner", "admin", "developer", "tester"].includes(role)) container.style.display = "block";
             renderTable();
@@ -190,7 +225,6 @@
             });
         }
 
-        // OPENS THE REASON MENU
         function openBanModal(idx) {
             selectedUserIdx = idx;
             document.getElementById('ban-target-name').innerText = "Banning: " + accounts[idx].name;
@@ -199,12 +233,10 @@
 
         function closeBanModal() { document.getElementById('ban-modal').style.display = "none"; }
 
-        // SUBMITS THE BAN DATA
         function submitBan() {
             const reason = document.getElementById('ban-reason').value || "Violation of rules.";
             const time = parseInt(document.getElementById('ban-duration').value);
             const expiry = (time === -1) ? -1 : Date.now() + (time * 60000);
-
             accounts[selectedUserIdx].status = "Banned";
             accounts[selectedUserIdx].banData = { reason, expiry };
             db.ref('accounts').set(accounts).then(() => closeBanModal());
