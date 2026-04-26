@@ -26,17 +26,14 @@
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* Panel Styling */
         #staff-panel { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto; transition: all 0.3s ease; }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .minimize-btn { background: #334155; color: #f8fafc; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
-        .minimize-btn:hover { background: #475569; }
-
+        
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { color: #94a3b8; font-size: 0.75rem; padding: 10px; border-bottom: 1px solid #334155; text-transform: uppercase; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
         
-        /* Badges */
         .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: none; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
         .dev-bg { background: #0ea5e9; color: white; }
@@ -45,11 +42,7 @@
         .user-bg { background: #64748b; color: white; }
         
         .badge-clickable { cursor: pointer; transition: 0.2s; }
-        .badge-clickable:hover { filter: brightness(1.2); }
-
-        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; transition: 0.2s; }
-        .community-btn:hover { background: #f1f5f9; transform: scale(1.02); }
-        
+        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; }
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
         
         .action-cell { display: flex; gap: 5px; }
@@ -99,7 +92,6 @@
                     <p style="font-size: 0.7rem; color: #94a3b8;" id="panel-hint"></p>
                     <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">Minimize Panel</button>
                 </div>
-                
                 <div id="staff-panel">
                     <table>
                         <thead>
@@ -118,8 +110,9 @@
 
         <div id="banned-screen" class="screen">
             <h1 style="color: #ef4444;">🚫 BANNED</h1>
-            <p>Access Denied.</p>
-            <button class="logout-btn" onclick="handleLogout()">Return</button>
+            <p style="margin-top: 10px;">Your access has been revoked by staff.</p>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 5px;">This happened in real-time.</p>
+            <button class="logout-btn" onclick="handleLogout()">Return to Login</button>
         </div>
     </div>
 
@@ -140,19 +133,40 @@
         let accounts = [];
         let currentUser = null;
 
+        // REAL-TIME LISTENER
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
-            if(!currentUser) {
-                const savedUser = localStorage.getItem('nls_session');
-                if(savedUser) {
-                    const parsed = JSON.parse(savedUser);
-                    const f = accounts.find(a => a.name === parsed.name && a.pass === parsed.pass);
-                    if(f) {
-                        if(f.status === "Banned") showScreen('banned-screen');
-                        else { currentUser = f; showDashboard(); }
+            
+            // Check if user is logged in
+            const session = localStorage.getItem('nls_session');
+            if(session) {
+                const parsed = JSON.parse(session);
+                // Find this user in the fresh database data
+                const freshData = accounts.find(a => a.name === parsed.name);
+                
+                if(freshData) {
+                    // INSTANT BAN CHECK: If status is Banned, kick them out immediately
+                    if(freshData.status === "Banned") {
+                        currentUser = null;
+                        localStorage.removeItem('nls_session');
+                        showScreen('banned-screen');
+                        return; // Stop further execution
                     }
+                    
+                    // If not banned and we were just loading, set them as logged in
+                    if(!currentUser) {
+                        currentUser = freshData;
+                        showDashboard();
+                    } else {
+                        // Update current data in case role changed
+                        currentUser = freshData;
+                    }
+                } else {
+                    // Account was deleted
+                    handleLogout();
                 }
             }
+
             if(currentUser) renderTable(); 
         });
 
@@ -167,7 +181,6 @@
             const p = document.getElementById('reg-password').value;
             if(!u || !e || !p) return alert("Fill all fields");
             if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
-            
             const newUser = { name: u, pass: p, email: e, role: "user", status: "Active" };
             accounts.push(newUser);
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
@@ -195,20 +208,14 @@
         function togglePanelVisibility() {
             const panel = document.getElementById('staff-panel');
             const btn = document.getElementById('toggle-panel-btn');
-            if (panel.style.display === "none") {
-                panel.style.display = "block";
-                btn.innerText = "Minimize Panel";
-            } else {
-                panel.style.display = "none";
-                btn.innerText = "View Staff Panel";
-            }
+            panel.style.display = (panel.style.display === "none") ? "block" : "none";
+            btn.innerText = (panel.style.display === "none") ? "View Staff Panel" : "Minimize Panel";
         }
 
         function toggleRole(idx) {
             if(currentUser.role !== "owner") return;
             const roles = ["user", "tester", "admin", "developer"];
-            let currentIdx = roles.indexOf(accounts[idx].role);
-            let nextIdx = (currentIdx + 1) % roles.length;
+            let nextIdx = (roles.indexOf(accounts[idx].role) + 1) % roles.length;
             accounts[idx].role = roles[nextIdx];
             db.ref('accounts').set(accounts);
         }
@@ -241,10 +248,10 @@
             else if (role === "tester") actionBtn.innerText = "Continue Testing NLS Games";
             else actionBtn.innerText = "Visit NLS Studios Community";
 
-            if (role === "owner" || role === "admin" || role === "developer" || role === "tester") {
+            if (["owner", "admin", "developer", "tester"].includes(role)) {
                 container.style.display = "block";
                 ph.style.display = role === "owner" ? "table-cell" : "none";
-                hint.innerText = role === "owner" ? "Owner View" : (role === "developer" ? "Developer View" : (role === "admin" ? "Admin View" : "Tester View"));
+                hint.innerText = `${role.charAt(0).toUpperCase() + role.slice(1)} View`;
             } else container.style.display = "none";
             renderTable();
         }
@@ -257,10 +264,9 @@
             accounts.forEach((acc, index) => {
                 const viewer = currentUser.role;
                 let canSee = false;
-
                 if (viewer === "owner") canSee = true;
-                if (viewer === "developer" && (acc.role === "admin" || acc.role === "tester" || acc.role === "user")) canSee = true;
-                if (viewer === "admin" && (acc.role === "tester" || acc.role === "user")) canSee = true;
+                if (viewer === "developer" && ["admin", "tester", "user"].includes(acc.role)) canSee = true;
+                if (viewer === "admin" && ["tester", "user"].includes(acc.role)) canSee = true;
                 if (viewer === "tester" && acc.role === "user") canSee = true;
 
                 if (canSee && acc.name !== currentUser.name) {
