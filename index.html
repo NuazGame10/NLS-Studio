@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLS Studio | Cloud Portal</title>
+    <title>NLS Studio | Portal</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -32,9 +32,9 @@
         .role-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 5px; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
         .admin-bg { background: #a855f7; color: white; }
-        .user-bg { background: #64748b; color: white; } /* Gray badge for normal users */
+        .user-bg { background: #64748b; color: white; }
         
-        .community-btn { background: #ffffff; color: #000000; margin: 20px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 10px; }
+        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; }
         
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
         .pass-text { font-family: monospace; color: #fbbf24; background: rgba(251, 191, 36, 0.1); padding: 2px 5px; border-radius: 4px; }
@@ -51,9 +51,10 @@
         </div>
 
         <div id="dashboard" class="screen">
-            <h2 id="welcome-msg">Dashboard</h2>
-            <p id="user-display" style="margin-top: 5px;"></p>
-            <div style="background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 20px; overflow-x: auto;">
+            <h2 id="welcome-msg">Welcome</h2>
+            <p id="user-display" style="margin-top: 5px; margin-bottom: 20px;"></p>
+            
+            <div id="admin-panel" style="display:none; background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
@@ -130,14 +131,20 @@
             showScreen('dashboard');
             const display = document.getElementById('user-display');
             const passHeader = document.getElementById('pass-header');
+            const adminPanel = document.getElementById('admin-panel');
 
-            if (currentUser.role === "owner") {
-                display.innerHTML = `@${currentUser.name} <span class="role-badge owner-bg">OWNER</span>`;
-                passHeader.style.display = "table-cell";
+            // Set User Badge
+            let badgeClass = currentUser.role === "owner" ? "owner-bg" : (currentUser.role === "admin" ? "admin-bg" : "user-bg");
+            display.innerHTML = `@${currentUser.name} <span class="role-badge ${badgeClass}">${currentUser.role.toUpperCase()}</span>`;
+
+            // Only show table panel if they aren't a basic User
+            if (currentUser.role === "owner" || currentUser.role === "admin") {
+                adminPanel.style.display = "block";
+                passHeader.style.display = currentUser.role === "owner" ? "table-cell" : "none";
             } else {
-                display.innerHTML = `@${currentUser.name} <span class="role-badge admin-bg">ADMIN</span>`;
-                passHeader.style.display = "none";
+                adminPanel.style.display = "none";
             }
+            
             renderTable();
         }
 
@@ -149,15 +156,11 @@
                 const isOwnerViewing = currentUser.role === "owner";
                 const isAdminViewingUser = (currentUser.role === "admin" && acc.role === "user");
 
-                // Logic: Owner sees everyone, Admin only sees "User" rank accounts
                 if (isOwnerViewing || isAdminViewingUser) {
                     const isBanned = acc.status === "Banned";
                     const row = document.createElement('tr');
                     
-                    // Assigning badge colors based on rank
-                    let badgeClass = "user-bg";
-                    if(acc.role === 'admin') badgeClass = "admin-bg";
-                    if(acc.role === 'owner') badgeClass = "owner-bg";
+                    let badgeClass = acc.role === 'admin' ? "admin-bg" : (acc.role === 'owner' ? "owner-bg" : "user-bg");
 
                     let content = `
                         <td>${acc.name}</td>
