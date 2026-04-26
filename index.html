@@ -58,7 +58,7 @@
         <div id="ban-modal">
             <h3 style="color: #ef4444; margin-bottom: 15px;">Moderate Account</h3>
             <p id="ban-target-name" style="margin-bottom: 10px; font-weight: bold;"></p>
-            <textarea id="ban-reason" placeholder="Reason for ban..."></textarea>
+            <textarea id="ban-reason" placeholder="Reason..."></textarea>
             <select id="ban-duration">
                 <option value="1">1 Minute</option>
                 <option value="60">1 Hour</option>
@@ -118,7 +118,7 @@
             <button id="main-action-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
                 Visit NLS Studios Community
             </button>
-            <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            <button class="logout-btn" onclick="handleLogout()">Log Out</button>
         </div>
 
         <div id="banned-screen" class="screen">
@@ -128,7 +128,7 @@
                 <p><strong>Reason:</strong> <span id="display-ban-reason"></span></p>
                 <p style="margin-top: 10px;"><strong>Expires:</strong> <span id="display-ban-time"></span></p>
             </div>
-            <button class="btn-primary" onclick="handleLogout()">LOGOUT</button>
+            <button class="btn-primary" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
 
@@ -151,6 +151,20 @@
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
         for(let i=2026; i>=1950; i--) yS.innerHTML += `<option value="${i}">${i}</option>`;
 
+        // THE AUTO-UNBAN TICKER (Checks every 1 second)
+        setInterval(() => {
+            if (!currentUser) return;
+            const now = Date.now();
+            const isBanned = currentUser.status === "Banned" || (currentUser.banData && (currentUser.banData.expiry === -1 || currentUser.banData.expiry > now));
+            
+            const onBanScreen = document.getElementById('banned-screen').classList.contains('active-screen');
+            
+            // Auto switch if ban expires while looking at the screen
+            if (!isBanned && onBanScreen) {
+                showDashboard();
+            }
+        }, 1000);
+
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
             const session = localStorage.getItem('nls_session');
@@ -160,23 +174,14 @@
                 const freshData = accounts.find(a => a.name === parsed.name);
                 
                 if(freshData) {
+                    currentUser = freshData;
                     const now = Date.now();
                     const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
 
                     if(isBanned) {
                         showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
-                        return;
-                    } 
-                    
-                    // Instant unban check
-                    if(!isBanned && document.getElementById('banned-screen').classList.contains('active-screen')) {
-                        currentUser = freshData;
-                        showDashboard();
-                    } else if(!currentUser) {
-                        currentUser = freshData;
-                        showDashboard();
                     } else {
-                        currentUser = freshData;
+                        showDashboard();
                     }
                 }
             }
@@ -198,15 +203,9 @@
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
             if (f) {
-                const now = Date.now();
-                const isBanned = f.status === "Banned" || (f.banData && (f.banData.expiry === -1 || f.banData.expiry > now));
-                if(isBanned) {
-                    showBanUI(f.banData?.reason || "Violation.", f.banData?.expiry || -1);
-                } else {
-                    currentUser = f;
-                    localStorage.setItem('nls_session', JSON.stringify(f));
-                    showDashboard(); // THIS FIXES THE REFRESH ISSUE
-                }
+                currentUser = f;
+                localStorage.setItem('nls_session', JSON.stringify(f));
+                // The DB listener above will handle showing the correct screen
             } else alert("Incorrect Login");
         }
 
