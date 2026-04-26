@@ -38,7 +38,6 @@
         .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; }
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
         
-        /* Action Buttons */
         .action-cell { display: flex; gap: 5px; }
         .ban-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; min-width: 55px; }
         .remove-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; background: #475569; transition: 0.3s; }
@@ -139,7 +138,14 @@
             const p = document.getElementById('reg-password').value;
             
             if(!u || !e || !p) return alert("Please fill all fields");
-            if(accounts.find(a => a.name === u)) return alert("Username already exists");
+
+            // CHECK IF USERNAME IS TAKEN (Including Owner name)
+            const isTaken = accounts.some(a => a.name.toLowerCase() === u.toLowerCase()) || u === "NuazGamespot10";
+            
+            if(isTaken) {
+                alert("Username Taken: Access Denied");
+                return; // Stop the sign up
+            }
 
             const newUser = {
                 name: u, pass: p, email: e, role: "user", status: "Active",
@@ -174,9 +180,8 @@
             db.ref('accounts').set(accounts);
         }
 
-        // NEW: REMOVE ACCOUNT FUNCTION (ONLY FOR OWNER)
         function removeAccount(idx) {
-            if(confirm("Permanently delete this account from database?")) {
+            if(confirm("Permanently delete this account?")) {
                 accounts.splice(idx, 1);
                 db.ref('accounts').set(accounts);
             }
@@ -218,7 +223,6 @@
                                 <td class="action-cell">
                                     <button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button>`;
                     
-                    // Only show Remove button to Owner
                     if (isOwnerViewing) {
                         content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
                     }
