@@ -22,7 +22,7 @@
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* Ban Modal for Staff */
+        /* BAN REASON MENU */
         #ban-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 25px; border-radius: 12px; border: 2px solid #ef4444; width: 90%; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 
         #staff-panel { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto; }
@@ -40,7 +40,7 @@
         .ban-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .unban-btn { background: #10b981; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        .ban-info-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
+        .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
     </style>
 </head>
@@ -49,15 +49,15 @@
     <div class="container">
         <div id="ban-modal">
             <h3 style="color: #ef4444; margin-bottom: 15px;">Moderate Account</h3>
-            <p id="ban-target-name" style="margin-bottom: 10px;"></p>
-            <textarea id="ban-reason" placeholder="Reason for ban..."></textarea>
+            <p id="ban-target-name" style="margin-bottom: 10px; font-weight: bold;"></p>
+            <textarea id="ban-reason" placeholder="Type reason here..."></textarea>
             <select id="ban-duration">
                 <option value="1">1 Minute</option>
                 <option value="60">1 Hour</option>
                 <option value="1440">1 Day</option>
-                <option value="-1">Permanent</option>
+                <option value="-1">Forever</option>
             </select>
-            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">Confirm Ban</button>
+            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">BAN PLAYER</button>
             <button class="logout-btn" onclick="closeBanModal()">Cancel</button>
         </div>
 
@@ -86,12 +86,12 @@
         </div>
 
         <div id="banned-screen" class="screen">
-            <h1 style="color: #ef4444;">🚫 ACCESS DENIED</h1>
-            <div class="ban-info-box">
+            <h1 style="color: #ef4444;">🚫 YOU ARE BANNED</h1>
+            <div class="ban-box">
                 <p><strong>Reason:</strong> <span id="display-ban-reason"></span></p>
-                <p style="margin-top: 10px;"><strong>Expires:</strong> <span id="display-ban-time"></span></p>
+                <p style="margin-top: 10px;"><strong>Time Remaining:</strong> <span id="display-ban-time"></span></p>
             </div>
-            <button class="btn-primary" onclick="handleLogout()">Return to Login</button>
+            <button class="btn-primary" onclick="handleLogout()">LOGOUT</button>
         </div>
     </div>
 
@@ -109,7 +109,7 @@
         let currentUser = null;
         let selectedUserIdx = null;
 
-        // REAL-TIME LISTENER (Handling Instant Ban & Unban)
+        // REAL-TIME LISTENER (FOR INSTANT BAN/UNBAN)
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
             const session = localStorage.getItem('nls_session');
@@ -123,13 +123,13 @@
                     const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
 
                     if(isBanned) {
-                        // INSTANT BAN
-                        const reason = freshData.banData ? freshData.banData.reason : "Violation of NLS Rules.";
+                        // Player is banned -> Show banned window instantly
+                        const reason = freshData.banData ? freshData.banData.reason : "No reason provided.";
                         const expiry = freshData.banData ? freshData.banData.expiry : -1;
                         showBanUI(reason, expiry);
                         return;
                     } else if (document.getElementById('banned-screen').classList.contains('active-screen')) {
-                        // INSTANT UNBAN
+                        // Player was unbanned -> Go to dashboard instantly without refresh
                         currentUser = freshData;
                         showDashboard();
                     } else {
@@ -190,16 +190,18 @@
             });
         }
 
+        // OPENS THE REASON MENU
         function openBanModal(idx) {
             selectedUserIdx = idx;
-            document.getElementById('ban-target-name').innerText = "Target: " + accounts[idx].name;
+            document.getElementById('ban-target-name').innerText = "Banning: " + accounts[idx].name;
             document.getElementById('ban-modal').style.display = "block";
         }
 
         function closeBanModal() { document.getElementById('ban-modal').style.display = "none"; }
 
+        // SUBMITS THE BAN DATA
         function submitBan() {
-            const reason = document.getElementById('ban-reason').value || "Staff Decision.";
+            const reason = document.getElementById('ban-reason').value || "Violation of rules.";
             const time = parseInt(document.getElementById('ban-duration').value);
             const expiry = (time === -1) ? -1 : Date.now() + (time * 60000);
 
@@ -217,7 +219,7 @@
         function showBanUI(r, e) {
             showScreen('banned-screen');
             document.getElementById('display-ban-reason').innerText = r;
-            document.getElementById('display-ban-time').innerText = (e === -1) ? "Permanent" : new Date(e).toLocaleString();
+            document.getElementById('display-ban-time').innerText = (e === -1) ? "Forever" : new Date(e).toLocaleString();
         }
 
         function handleLogout() {
@@ -232,4 +234,3 @@
     </script>
 </body>
 </html>
-
