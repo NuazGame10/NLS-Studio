@@ -151,17 +151,27 @@
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
         for(let i=2026; i>=1950; i--) yS.innerHTML += `<option value="${i}">${i}</option>`;
 
-        // THE AUTO-UNBAN TICKER (Checks every 1 second)
+        // CRITICAL FIX: AUTO-UNBAN TICKER & REAL-TIME STATE CHECK
         setInterval(() => {
-            if (!currentUser) return;
+            const session = localStorage.getItem('nls_session');
+            if (!session) return;
+            
+            const parsed = JSON.parse(session);
+            const freshData = accounts.find(a => a.name === parsed.name);
+            if (!freshData) return;
+
             const now = Date.now();
-            const isBanned = currentUser.status === "Banned" || (currentUser.banData && (currentUser.banData.expiry === -1 || currentUser.banData.expiry > now));
-            
+            const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
             const onBanScreen = document.getElementById('banned-screen').classList.contains('active-screen');
-            
-            // Auto switch if ban expires while looking at the screen
+
+            // If ban expired but still on ban screen -> Move to Dashboard
             if (!isBanned && onBanScreen) {
+                currentUser = freshData;
                 showDashboard();
+            } 
+            // If just banned while on dashboard -> Move to Ban Screen
+            else if (isBanned && !onBanScreen && !document.getElementById('login-screen').classList.contains('active-screen')) {
+                showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
             }
         }, 1000);
 
@@ -180,7 +190,7 @@
 
                     if(isBanned) {
                         showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
-                    } else {
+                    } else if (document.getElementById('login-screen').classList.contains('active-screen') || document.getElementById('banned-screen').classList.contains('active-screen')) {
                         showDashboard();
                     }
                 }
@@ -198,14 +208,24 @@
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
         }
 
+        // FIX: LOGIN WITHOUT REFRESH
         function handleLogin() {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
+            
             if (f) {
+                const now = Date.now();
+                const isBanned = f.status === "Banned" || (f.banData && (f.banData.expiry === -1 || f.banData.expiry > now));
+                
                 currentUser = f;
                 localStorage.setItem('nls_session', JSON.stringify(f));
-                // The DB listener above will handle showing the correct screen
+
+                if(isBanned) {
+                    showBanUI(f.banData?.reason || "Violation.", f.banData?.expiry || -1);
+                } else {
+                    showDashboard(); // Instant Dashboard access
+                }
             } else alert("Incorrect Login");
         }
 
