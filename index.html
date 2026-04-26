@@ -25,7 +25,6 @@
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* MODAL */
         #ban-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 25px; border-radius: 12px; border: 2px solid #ef4444; width: 90%; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 
         #staff-panel { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto; }
@@ -59,14 +58,14 @@
         <div id="ban-modal">
             <h3 style="color: #ef4444; margin-bottom: 15px;">Moderate Account</h3>
             <p id="ban-target-name" style="margin-bottom: 10px; font-weight: bold;"></p>
-            <textarea id="ban-reason" placeholder="Reason..."></textarea>
+            <textarea id="ban-reason" placeholder="Reason for ban..."></textarea>
             <select id="ban-duration">
                 <option value="1">1 Minute</option>
                 <option value="60">1 Hour</option>
                 <option value="1440">1 Day</option>
                 <option value="-1">Forever</option>
             </select>
-            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">CONFIRM BAN</button>
+            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">BAN PLAYER</button>
             <button class="logout-btn" onclick="closeBanModal()">Cancel</button>
         </div>
 
@@ -168,7 +167,8 @@
                         showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
                         return;
                     } 
-
+                    
+                    // Instant unban check
                     if(!isBanned && document.getElementById('banned-screen').classList.contains('active-screen')) {
                         currentUser = freshData;
                         showDashboard();
@@ -198,7 +198,15 @@
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
             if (f) {
-                localStorage.setItem('nls_session', JSON.stringify(f));
+                const now = Date.now();
+                const isBanned = f.status === "Banned" || (f.banData && (f.banData.expiry === -1 || f.banData.expiry > now));
+                if(isBanned) {
+                    showBanUI(f.banData?.reason || "Violation.", f.banData?.expiry || -1);
+                } else {
+                    currentUser = f;
+                    localStorage.setItem('nls_session', JSON.stringify(f));
+                    showDashboard(); // THIS FIXES THE REFRESH ISSUE
+                }
             } else alert("Incorrect Login");
         }
 
@@ -220,6 +228,8 @@
                 container.style.display = "block";
                 document.getElementById('pass-header').style.display = role === "owner" ? "table-cell" : "none";
                 document.getElementById('panel-hint').innerText = `${role.toUpperCase()} VIEW`;
+            } else {
+                container.style.display = "none";
             }
             renderTable();
         }
@@ -321,4 +331,3 @@
     </script>
 </body>
 </html>
-
