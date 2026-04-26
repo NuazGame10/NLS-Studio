@@ -58,14 +58,8 @@
         <div id="ban-modal">
             <h3 style="color: #ef4444; margin-bottom: 15px;">Moderate Account</h3>
             <p id="ban-target-name" style="margin-bottom: 10px; font-weight: bold;"></p>
-            <textarea id="ban-reason" placeholder="Reason..."></textarea>
-            <select id="ban-duration">
-                <option value="1">1 Minute</option>
-                <option value="60">1 Hour</option>
-                <option value="1440">1 Day</option>
-                <option value="-1">Forever</option>
-            </select>
-            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">BAN PLAYER</button>
+            <textarea id="ban-reason" placeholder="Type reason for ban..."></textarea>
+            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">CONFIRM BAN</button>
             <button class="logout-btn" onclick="closeBanModal()">Cancel</button>
         </div>
 
@@ -123,10 +117,9 @@
 
         <div id="banned-screen" class="screen">
             <h1 style="color: #ef4444;">🚫 BANNED</h1>
-            <p style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Your account has been temporarily banned because of a violation you committed in NLS Studio.</p>
+            <p style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Your account has been permanently banned by NLS Studio Staff.</p>
             <div class="ban-box">
                 <p><strong>Reason:</strong> <span id="display-ban-reason"></span></p>
-                <p style="margin-top: 10px;"><strong>Expires:</strong> <span id="display-ban-time"></span></p>
             </div>
             <button class="btn-primary" onclick="handleLogout()">Log Out</button>
         </div>
@@ -146,35 +139,13 @@
         let currentUser = null;
         let selectedUserIdx = null;
 
+        // Birthday Selectors
         const dS = document.getElementById('birth-day');
         const yS = document.getElementById('birth-year');
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
         for(let i=2026; i>=1950; i--) yS.innerHTML += `<option value="${i}">${i}</option>`;
 
-        // CRITICAL FIX: AUTO-UNBAN TICKER & REAL-TIME STATE CHECK
-        setInterval(() => {
-            const session = localStorage.getItem('nls_session');
-            if (!session) return;
-            
-            const parsed = JSON.parse(session);
-            const freshData = accounts.find(a => a.name === parsed.name);
-            if (!freshData) return;
-
-            const now = Date.now();
-            const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
-            const onBanScreen = document.getElementById('banned-screen').classList.contains('active-screen');
-
-            // If ban expired but still on ban screen -> Move to Dashboard
-            if (!isBanned && onBanScreen) {
-                currentUser = freshData;
-                showDashboard();
-            } 
-            // If just banned while on dashboard -> Move to Ban Screen
-            else if (isBanned && !onBanScreen && !document.getElementById('login-screen').classList.contains('active-screen')) {
-                showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
-            }
-        }, 1000);
-
+        // MAIN REAL-TIME LISTENER
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
             const session = localStorage.getItem('nls_session');
@@ -185,11 +156,9 @@
                 
                 if(freshData) {
                     currentUser = freshData;
-                    const now = Date.now();
-                    const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
-
-                    if(isBanned) {
-                        showBanUI(freshData.banData?.reason || "Violation.", freshData.banData?.expiry || -1);
+                    // Check ban status (now purely status-based)
+                    if(freshData.status === "Banned") {
+                        showBanUI(freshData.banData?.reason || "Violation of rules.");
                     } else if (document.getElementById('login-screen').classList.contains('active-screen') || document.getElementById('banned-screen').classList.contains('active-screen')) {
                         showDashboard();
                     }
@@ -208,23 +177,20 @@
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
         }
 
-        // FIX: LOGIN WITHOUT REFRESH
+        // LOGIN WITHOUT REFRESH
         function handleLogin() {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
             
             if (f) {
-                const now = Date.now();
-                const isBanned = f.status === "Banned" || (f.banData && (f.banData.expiry === -1 || f.banData.expiry > now));
-                
                 currentUser = f;
                 localStorage.setItem('nls_session', JSON.stringify(f));
 
-                if(isBanned) {
-                    showBanUI(f.banData?.reason || "Violation.", f.banData?.expiry || -1);
+                if(f.status === "Banned") {
+                    showBanUI(f.banData?.reason || "Violation of rules.");
                 } else {
-                    showDashboard(); // Instant Dashboard access
+                    showDashboard();
                 }
             } else alert("Incorrect Login");
         }
@@ -267,7 +233,6 @@
                 else if (viewer === "tester" && acc.role === "user") canSee = true;
 
                 if (canSee && acc.name !== currentUser.name) {
-                    const isBanned = acc.status === "Banned" || (acc.banData && (acc.banData.expiry === -1 || acc.banData.expiry > Date.now()));
                     const row = document.createElement('tr');
                     let clickable = viewer === "owner" ? "badge-clickable" : "";
                     
@@ -276,9 +241,9 @@
                     
                     if (viewer === "owner") content += `<td style="color:#fbbf24">${acc.pass}</td>`;
                     
-                    content += `<td style="color:${isBanned ? '#ef4444' : '#4ade80'}">${isBanned ? 'Banned' : 'Active'}</td>
+                    content += `<td style="color:${acc.status === 'Banned' ? '#ef4444' : '#4ade80'}">${acc.status}</td>
                         <td class="action-cell">
-                            <button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="${isBanned ? `unbanUser(${index})` : `openBanModal(${index})`}">${isBanned ? 'Unban' : 'Ban'}</button>`;
+                            <button class="ban-btn" style="background:${acc.status === 'Banned' ? '#4ade80' : '#ef4444'}" onclick="${acc.status === 'Banned' ? `unbanUser(${index})` : `openBanModal(${index})`}">${acc.status === 'Banned' ? 'Unban' : 'Ban'}</button>`;
                     
                     if (viewer === "owner") content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
                     
@@ -312,10 +277,8 @@
 
         function submitBan() {
             const reason = document.getElementById('ban-reason').value || "Violation of rules.";
-            const time = parseInt(document.getElementById('ban-duration').value);
-            const expiry = (time === -1) ? -1 : Date.now() + (time * 60000);
             accounts[selectedUserIdx].status = "Banned";
-            accounts[selectedUserIdx].banData = { reason, expiry };
+            accounts[selectedUserIdx].banData = { reason: reason };
             db.ref('accounts').set(accounts).then(() => closeBanModal());
         }
 
@@ -332,10 +295,9 @@
             }
         }
 
-        function showBanUI(r, e) {
+        function showBanUI(reason) {
             showScreen('banned-screen');
-            document.getElementById('display-ban-reason').innerText = r;
-            document.getElementById('display-ban-time').innerText = (e === -1) ? "Forever" : new Date(e).toLocaleString();
+            document.getElementById('display-ban-reason').innerText = reason;
         }
 
         function handleLogout() {
