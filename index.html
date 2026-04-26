@@ -12,11 +12,16 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { height: 100vh; display: flex; justify-content: center; align-items: center; background: #0f172a; color: #f8fafc; overflow: hidden; }
         .container { background: rgba(30, 41, 59, 0.8); padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); width: 100%; max-width: 750px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
-        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 8px; outline: none; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 12px; outline: none; }
         
-        button.btn-signin { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; margin-bottom: 25px; }
-        button.btn-signin:hover { background: #7dd3fc; transform: translateY(-2px); }
+        .btn-primary { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-primary:hover { background: #7dd3fc; transform: translateY(-2px); }
         
+        .btn-secondary { background: transparent; color: #38bdf8; border: 1px solid #38bdf8; margin-top: 10px; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        .birthday-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .birthday-row select { margin-bottom: 0; }
+
         .screen { display: none; }
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -25,19 +30,14 @@
         th { color: #94a3b8; font-size: 0.75rem; padding: 10px; border-bottom: 1px solid #334155; text-transform: uppercase; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
         
-        .ban-btn { padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; width: 60px; }
-        .status-active { color: #4ade80; }
-        .status-banned { color: #ef4444; text-decoration: line-through; }
-        
         .role-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 5px; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
         .admin-bg { background: #a855f7; color: white; }
         .user-bg { background: #64748b; color: white; }
         
         .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; }
-        
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
-        .pass-text { font-family: monospace; color: #fbbf24; background: rgba(251, 191, 36, 0.1); padding: 2px 5px; border-radius: 4px; }
+        .ban-btn { padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -45,9 +45,30 @@
     <div class="container">
         <div id="login-screen" class="screen active-screen">
             <h2 style="margin-bottom: 25px;">NLS STUDIO</h2>
-            <input type="text" id="username" placeholder="Username">
-            <input type="password" id="password" placeholder="Password">
-            <button class="btn-signin" onclick="handleLogin()">Sign In</button>
+            <input type="text" id="login-username" placeholder="Username">
+            <input type="password" id="login-password" placeholder="Password">
+            <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+            <button class="btn-secondary" onclick="showScreen('signup-screen')">Create New Account</button>
+        </div>
+
+        <div id="signup-screen" class="screen">
+            <h2 style="margin-bottom: 15px;">NLS Account Sign Up</h2>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 15px;">Enter your birthday</p>
+            <div class="birthday-row">
+                <select id="birth-day"></select>
+                <select id="birth-month">
+                    <option value="Jan">Jan</option><option value="Feb">Feb</option><option value="Mar">Mar</option>
+                    <option value="Apr">Apr</option><option value="May">May</option><option value="Jun">Jun</option>
+                    <option value="Jul">Jul</option><option value="Aug">Aug</option><option value="Sep">Sep</option>
+                    <option value="Oct">Oct</option><option value="Nov">Nov</option><option value="Dec">Dec</option>
+                </select>
+                <select id="birth-year"></select>
+            </div>
+            <input type="text" id="reg-username" placeholder="Username">
+            <input type="email" id="reg-email" placeholder="Email">
+            <input type="password" id="reg-password" placeholder="Password">
+            <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
+            <button class="logout-btn" onclick="showScreen('login-screen')">Back to Login</button>
         </div>
 
         <div id="dashboard" class="screen">
@@ -57,13 +78,7 @@
             <div id="admin-panel" style="display:none; background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto;">
                 <table>
                     <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Rank</th>
-                            <th id="pass-header" style="display:none;">Password</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
+                        <tr><th>User</th><th>Rank</th><th id="pass-header" style="display:none;">Password</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="user-list"></tbody>
                 </table>
@@ -72,7 +87,6 @@
             <button class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
                 Visit NLS Studios Community
             </button>
-            
             <button class="logout-btn" onclick="location.reload()">Logout</button>
         </div>
 
@@ -100,15 +114,46 @@
         let accounts = [];
         let currentUser = null;
 
+        // Load Accounts
         db.ref('accounts').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data) accounts = data;
+            accounts = data || [];
             if(currentUser) renderTable(); 
         });
 
+        // Populate Birthday Dropdowns
+        const daySelect = document.getElementById('birth-day');
+        const yearSelect = document.getElementById('birth-year');
+        for(let i=1; i<=31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+        for(let i=2026; i>=1950; i--) yearSelect.innerHTML += `<option value="${i}">${i}</option>`;
+
+        function handleSignUp() {
+            const u = document.getElementById('reg-username').value;
+            const e = document.getElementById('reg-email').value;
+            const p = document.getElementById('reg-password').value;
+            
+            if(!u || !e || !p) return alert("Please fill all fields");
+            if(accounts.find(a => a.name === u)) return alert("Username already exists");
+
+            const newUser = {
+                name: u,
+                pass: p,
+                email: e,
+                role: "user",
+                status: "Active",
+                birthday: `${document.getElementById('birth-day').value} ${document.getElementById('birth-month').value} ${document.getElementById('birth-year').value}`
+            };
+
+            accounts.push(newUser);
+            db.ref('accounts').set(accounts).then(() => {
+                alert("Account Created Successfully! Please Login.");
+                showScreen('login-screen');
+            });
+        }
+
         function handleLogin() {
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
+            const u = document.getElementById('login-username').value;
+            const p = document.getElementById('login-password').value;
 
             if (u === "NuazGamespot10" && p === "Malaysia1957") {
                 currentUser = { name: u, role: "owner" };
@@ -116,7 +161,7 @@
             } else {
                 const found = accounts.find(a => a.name === u && a.pass === p);
                 if (found) {
-                    if (found.status === "Banned") { showScreen('banned-screen'); }
+                    if (found.status === "Banned") showScreen('banned-screen');
                     else { currentUser = found; showDashboard(); }
                 } else { alert("Incorrect Login"); }
             }
@@ -130,28 +175,24 @@
         function showDashboard() {
             showScreen('dashboard');
             const display = document.getElementById('user-display');
-            const passHeader = document.getElementById('pass-header');
             const adminPanel = document.getElementById('admin-panel');
+            const passHeader = document.getElementById('pass-header');
 
-            // Set User Badge
             let badgeClass = currentUser.role === "owner" ? "owner-bg" : (currentUser.role === "admin" ? "admin-bg" : "user-bg");
             display.innerHTML = `@${currentUser.name} <span class="role-badge ${badgeClass}">${currentUser.role.toUpperCase()}</span>`;
 
-            // Only show table panel if they aren't a basic User
             if (currentUser.role === "owner" || currentUser.role === "admin") {
                 adminPanel.style.display = "block";
                 passHeader.style.display = currentUser.role === "owner" ? "table-cell" : "none";
             } else {
                 adminPanel.style.display = "none";
             }
-            
             renderTable();
         }
 
         function renderTable() {
             const list = document.getElementById('user-list');
             list.innerHTML = "";
-            
             accounts.forEach((acc, index) => {
                 const isOwnerViewing = currentUser.role === "owner";
                 const isAdminViewingUser = (currentUser.role === "admin" && acc.role === "user");
@@ -159,23 +200,12 @@
                 if (isOwnerViewing || isAdminViewingUser) {
                     const isBanned = acc.status === "Banned";
                     const row = document.createElement('tr');
-                    
                     let badgeClass = acc.role === 'admin' ? "admin-bg" : (acc.role === 'owner' ? "owner-bg" : "user-bg");
-
-                    let content = `
-                        <td>${acc.name}</td>
-                        <td><span class="role-badge ${badgeClass}">${acc.role.toUpperCase()}</span></td>
-                    `;
-
-                    if (isOwnerViewing) {
-                        content += `<td><span class="pass-text">${acc.pass}</span></td>`;
-                    }
-
-                    content += `
-                        <td class="${isBanned ? 'status-banned' : 'status-active'}">${acc.status}</td>
-                        <td><button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button></td>
-                    `;
                     
+                    let content = `<td>${acc.name}</td><td><span class="role-badge ${badgeClass}">${acc.role.toUpperCase()}</span></td>`;
+                    if (isOwnerViewing) content += `<td><span style="color:#fbbf24; font-family:monospace;">${acc.pass}</span></td>`;
+                    content += `<td class="${isBanned ? 'status-banned' : 'status-active'}">${acc.status}</td>
+                                <td><button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button></td>`;
                     row.innerHTML = content;
                     list.appendChild(row);
                 }
