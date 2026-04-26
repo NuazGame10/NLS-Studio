@@ -97,13 +97,13 @@
             <button class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
                 Visit NLS Studios Community
             </button>
-            <button class="logout-btn" onclick="location.reload()">Logout</button>
+            <button class="logout-btn" onclick="handleLogout()">Logout</button>
         </div>
 
         <div id="banned-screen" class="screen">
             <h1 style="color: #ef4444;">🚫 BANNED</h1>
             <p>Access Denied.</p>
-            <button class="logout-btn" onclick="location.reload()">Return</button>
+            <button class="logout-btn" onclick="handleLogout()">Return</button>
         </div>
     </div>
 
@@ -124,11 +124,32 @@
         let accounts = [];
         let currentUser = null;
 
+        // LOAD ACCOUNTS & CHECK PERSISTENCE
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
+            
+            // On first load or refresh, check if we have a saved user
+            if(!currentUser) {
+                const savedUser = localStorage.getItem('nls_session');
+                if(savedUser) {
+                    const parsed = JSON.parse(savedUser);
+                    // Re-verify against DB in case they got banned or deleted while away
+                    const f = accounts.find(a => a.name === parsed.name && a.pass === parsed.pass);
+                    if(f) {
+                        if(f.status === "Banned") showScreen('banned-screen');
+                        else {
+                            currentUser = f;
+                            showDashboard();
+                        }
+                    } else {
+                        localStorage.removeItem('nls_session');
+                    }
+                }
+            }
             if(currentUser) renderTable(); 
         });
 
+        // Birthdays
         const dS = document.getElementById('birth-day');
         const yS = document.getElementById('birth-year');
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
@@ -139,9 +160,8 @@
             const e = document.getElementById('reg-email').value;
             const p = document.getElementById('reg-password').value;
             if(!u || !e || !p) return alert("Fill all fields");
-            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) {
-                return alert("Username Taken");
-            }
+            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
+            
             const newUser = { name: u, pass: p, email: e, role: "user", status: "Active" };
             accounts.push(newUser);
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
@@ -150,19 +170,27 @@
         function handleLogin() {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
-            
-            // Now checks EVERYTHING in database (including owner/admin)
             const f = accounts.find(a => a.name === u && a.pass === p);
+            
             if (f) {
                 if (f.status === "Banned") showScreen('banned-screen');
-                else { currentUser = f; showDashboard(); }
+                else {
+                    currentUser = f;
+                    // SAVE SESSION TO LOCAL STORAGE
+                    localStorage.setItem('nls_session', JSON.stringify(f));
+                    showDashboard();
+                }
             } else alert("Incorrect Login");
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('nls_session');
+            location.reload();
         }
 
         function toggleRole(idx) {
             if(currentUser.role !== "owner") return;
-            const account = accounts[idx];
-            account.role = account.role === "admin" ? "user" : "admin";
+            accounts[idx].role = accounts[idx].role === "admin" ? "user" : "admin";
             db.ref('accounts').set(accounts);
         }
 
@@ -203,20 +231,16 @@
             accounts.forEach((acc, index) => {
                 const isOwner = currentUser.role === "owner";
                 const isAdmin = currentUser.role === "admin";
-                
                 if (isOwner || (isAdmin && acc.role === "user")) {
                     const isBanned = acc.status === "Banned";
                     const row = document.createElement('tr');
-                    
                     let bc = acc.role === 'admin' ? "admin-bg" : (acc.role === 'owner' ? "owner-bg" : "user-bg");
                     let clickable = isOwner && acc.role !== 'owner' ? "badge-clickable" : "";
                     let clickAction = isOwner && acc.role !== 'owner' ? `onclick="toggleRole(${index})"` : "";
 
                     let content = `<td>${acc.name}</td>
                                    <td><span class="role-badge ${bc} ${clickable}" ${clickAction}>${acc.role.toUpperCase()}</span></td>`;
-                    
                     if (isOwner) content += `<td><span style="color:#fbbf24; font-family:monospace;">${acc.pass}</span></td>`;
-                    
                     content += `<td class="${isBanned ? 'status-banned' : 'status-active'}">${acc.status}</td>
                                 <td class="action-cell">
                                     <button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button>`;
@@ -235,4 +259,3 @@
     </script>
 </body>
 </html>
-
