@@ -1,85 +1,263 @@
-<script>
-    // MAKE SURE TO PUT YOUR ACTUAL KEY AND URL HERE
-    const firebaseConfig = {
-        apiKey: "AIzaSyAjxklCo7h1l6UQwtLd-K7k4p_fe5SMh1k",
-        authDomain: "nls-studio.firebaseapp.com",
-        databaseURL: "https://nls-studio-default-rtdb.firebaseio.com", 
-        projectId: "nls-studio"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    let accounts = [];
-    let currentUser = null;
-    let selectedUserIdx = null;
-
-    db.ref('accounts').on('value', (snapshot) => {
-        accounts = snapshot.val() || [];
-        const session = localStorage.getItem('nls_session');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLS Studio | Portal</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { height: 100vh; display: flex; justify-content: center; align-items: center; background: #0f172a; color: #f8fafc; overflow: hidden; }
+        .container { background: rgba(30, 41, 59, 0.8); padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); width: 100%; max-width: 500px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; position: relative; }
         
-        if(session) {
-            const parsed = JSON.parse(session);
-            const freshData = accounts.find(a => a.name === parsed.name);
+        input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 10px; outline: none; }
+        
+        .btn-primary { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-secondary { background: transparent; color: #38bdf8; border: 1px solid #38bdf8; margin-top: 10px; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        .screen { display: none; }
+        .active-screen { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Ban Modal */
+        #ban-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 20px; border-radius: 12px; border: 2px solid #ef4444; width: 90%; z-index: 100; box-shadow: 0 0 50px rgba(0,0,0,0.9); }
+
+        /* Panel Styling */
+        #panel-container { background: rgba(15, 23, 42, 0.5); padding: 10px; border-radius: 10px; margin: 15px 0; max-height: 250px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { color: #94a3b8; padding: 8px; border-bottom: 1px solid #334155; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
+        
+        .role-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; }
+        .owner-bg { background: #38bdf8; color: #0f172a; }
+        .dev-bg { background: #0ea5e9; color: white; }
+        .admin-bg { background: #a855f7; color: white; }
+        .tester-bg { background: #10b981; color: white; }
+        .user-bg { background: #64748b; color: white; }
+        
+        .ban-btn { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .unban-btn { background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+
+        .community-btn { background: #ffffff; color: #000000; margin: 20px auto 0; display: block; text-decoration: none; width: 100%; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; border: none; cursor: pointer; }
+        .logout-link { color: #94a3b8; text-decoration: underline; background: none; border: none; margin-top: 15px; cursor: pointer; font-size: 0.8rem; }
+        
+        .ban-box { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 15px; text-align: left; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="ban-modal">
+            <h3 style="color: #ef4444; margin-bottom: 10px;">Moderate User</h3>
+            <p id="ban-target-label" style="font-size: 0.8rem; margin-bottom: 10px;"></p>
+            <textarea id="ban-reason-input" placeholder="Reason for ban..."></textarea>
+            <select id="ban-time-input">
+                <option value="1">1 Minute</option>
+                <option value="60">1 Hour</option>
+                <option value="1440">1 Day</option>
+                <option value="-1">Permanent</option>
+            </select>
+            <button class="btn-primary" style="background:#ef4444; color:white;" onclick="confirmBanAction()">Apply Ban</button>
+            <button class="logout-link" onclick="closeBanModal()">Cancel</button>
+        </div>
+
+        <div id="login-screen" class="screen active-screen">
+            <h2 style="margin-bottom: 20px;">NLS STUDIO</h2>
+            <input type="text" id="log-u" placeholder="Username">
+            <input type="password" id="log-p" placeholder="Password">
+            <button class="btn-primary" onclick="attemptLogin()">Login</button>
+        </div>
+
+        <div id="dashboard-screen" class="screen">
+            <h2 id="dash-welcome">Welcome</h2>
+            <p id="dash-user-info"></p>
+
+            <div id="panel-container" style="display:none;">
+                <table>
+                    <thead>
+                        <tr><th>User</th><th>Rank</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="user-list-body"></tbody>
+                </table>
+            </div>
+
+            <button id="community-btn" class="community-btn" onclick="window.open('https://www.roblox.com/communities/34495526/NLS-Studios')">Visit NLS Studios Community</button>
+            <button class="logout-link" onclick="logOut()">Logout</button>
+        </div>
+
+        <div id="banned-screen" class="screen">
+            <h1 style="color:#ef4444;">BANNED</h1>
+            <div class="ban-box">
+                <p><strong>Reason:</strong> <span id="ban-reason-display"></span></p>
+                <p style="margin-top:8px;"><strong>Expiry:</strong> <span id="ban-expiry-display"></span></p>
+            </div>
+            <button class="btn-primary" onclick="logOut()">Back to Login</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAjxklCo7h1l6UQwtLd-K7k4p_fe5SMh1k",
+            authDomain: "nls-studio.firebaseapp.com",
+            databaseURL: "https://nls-studio-default-rtdb.firebaseio.com", 
+            projectId: "nls-studio"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let allAccounts = [];
+        let loggedUser = null;
+        let targetIdx = null;
+
+        db.ref('accounts').on('value', (snap) => {
+            allAccounts = snap.val() || [];
+            const session = localStorage.getItem('nls_session');
             
-            if(freshData) {
-                const now = Date.now();
-                // FIX: Check for both old 'Banned' status and new 'banData'
-                const isBanned = freshData.status === "Banned" || (freshData.banData && (freshData.banData.expiry === -1 || freshData.banData.expiry > now));
+            if(session) {
+                const saved = JSON.parse(session);
+                const currentData = allAccounts.find(a => a.name === saved.name);
                 
-                if(isBanned) {
-                    // If they have old status but no banData, give a default reason
-                    const reason = freshData.banData ? freshData.banData.reason : "Account disabled by staff.";
-                    const expiry = freshData.banData ? freshData.banData.expiry : -1;
-                    showBanScreen({ reason, expiry });
-                    return;
+                if(currentData) {
+                    const now = Date.now();
+                    const isBanned = currentData.status === "Banned" || (currentData.banData && (currentData.banData.expiry === -1 || currentData.banData.expiry > now));
+                    
+                    if(isBanned) {
+                        const reason = currentData.banData ? currentData.banData.reason : "Violation of terms.";
+                        const expiry = currentData.banData ? currentData.banData.expiry : -1;
+                        showBanUI(reason, expiry);
+                        return;
+                    }
+                    
+                    loggedUser = currentData;
+                    renderDashboard();
                 }
-                
-                currentUser = freshData;
-                showDashboard();
-            }
-        }
-        renderTable(); // Always attempt to render the table if staff
-    });
-
-    function renderTable() {
-        if (!currentUser) return;
-        const list = document.getElementById('user-list');
-        if (!list) return;
-
-        list.innerHTML = "";
-        const badgeColors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
-
-        accounts.forEach((acc, index) => {
-            const viewer = currentUser.role;
-            let canManage = false;
-
-            // Permission check
-            if (viewer === "owner") canManage = true;
-            else if (viewer === "developer" && ["admin", "tester", "user"].includes(acc.role)) canManage = true;
-            else if (viewer === "admin" && ["tester", "user"].includes(acc.role)) canManage = true;
-            else if (viewer === "tester" && acc.role === "user") canManage = true;
-
-            // Don't show yourself in the list
-            if (canManage && acc.name !== currentUser.name) {
-                const now = Date.now();
-                // FIX: Better check for 'isBanned'
-                const isBanned = acc.status === "Banned" || (acc.banData && (acc.banData.expiry === -1 || acc.banData.expiry > now));
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${acc.name}</td>
-                    <td><span class="role-badge ${badgeColors[acc.role] || 'user-bg'}">${acc.role.toUpperCase()}</span></td>
-                    <td class="${isBanned ? 'status-banned' : 'status-active'}">${isBanned ? 'Banned' : 'Active'}</td>
-                    <td>
-                        ${isBanned ? 
-                            `<button class="unban-btn" onclick="unbanUser(${index})">Unban</button>` : 
-                            `<button class="ban-btn" onclick="openBanModal(${index})">Ban</button>`}
-                    </td>
-                `;
-                list.appendChild(row);
             }
         });
-    }
-    
-    // ... rest of the functions (openBanModal, submitBan, etc.) from previous code
-</script>
+
+        function attemptLogin() {
+            const u = document.getElementById('log-u').value;
+            const p = document.getElementById('log-p').value;
+            const user = allAccounts.find(a => a.name === u && a.pass === p);
+            
+            if(user) {
+                const now = Date.now();
+                const isBanned = user.status === "Banned" || (user.banData && (user.banData.expiry === -1 || user.banData.expiry > now));
+                if(isBanned) {
+                   const reason = user.banData ? user.banData.reason : "Violation of terms.";
+                   const expiry = user.banData ? user.banData.expiry : -1;
+                   showBanUI(reason, expiry);
+                } else {
+                   loggedUser = user;
+                   localStorage.setItem('nls_session', JSON.stringify(user));
+                   renderDashboard();
+                }
+            } else {
+                alert("Invalid credentials");
+            }
+        }
+
+        function renderDashboard() {
+            showScreen('dashboard-screen');
+            const info = document.getElementById('dash-user-info');
+            const role = loggedUser.role || "user";
+            const btn = document.getElementById('community-btn');
+            
+            const colors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+            info.innerHTML = `@${loggedUser.name} <span class="role-badge ${colors[role]}">${role}</span>`;
+
+            if(role === "developer") btn.innerText = "Continue Developing";
+            else if(role === "tester") btn.innerText = "Continue Testing NLS Games";
+            else btn.innerText = "Visit NLS Studios Community";
+
+            const panel = document.getElementById('panel-container');
+            if(["owner", "developer", "admin", "tester"].includes(role)) {
+                panel.style.display = "block";
+                updateUserList();
+            } else {
+                panel.style.display = "none";
+            }
+        }
+
+        function updateUserList() {
+            const body = document.getElementById('user-list-body');
+            if(!body) return;
+            body.innerHTML = "";
+            const colors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+
+            allAccounts.forEach((acc, i) => {
+                const viewerRole = loggedUser.role;
+                let canSee = false;
+
+                if(viewerRole === "owner") canSee = true;
+                if(viewerRole === "developer" && ["admin", "tester", "user"].includes(acc.role)) canSee = true;
+                if(viewerRole === "admin" && ["tester", "user"].includes(acc.role)) canSee = true;
+                if(viewerRole === "tester" && acc.role === "user") canSee = true;
+
+                if(canSee && acc.name !== loggedUser.name) {
+                    const now = Date.now();
+                    const isBanned = acc.status === "Banned" || (acc.banData && (acc.banData.expiry === -1 || acc.banData.expiry > now));
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${acc.name}</td>
+                        <td><span class="role-badge ${colors[acc.role] || 'user-bg'}">${acc.role}</span></td>
+                        <td style="color:${isBanned ? '#ef4444':'#4ade80'}">${isBanned ? 'Banned' : 'Active'}</td>
+                        <td>
+                            ${isBanned ? `<button class="unban-btn" onclick="unbanUser(${i})">Unban</button>` : `<button class="ban-btn" onclick="openBanModal(${i})">Ban</button>`}
+                        </td>
+                    `;
+                    body.appendChild(tr);
+                }
+            });
+        }
+
+        function openBanModal(idx) {
+            targetIdx = idx;
+            document.getElementById('ban-target-label').innerText = "Banning: " + allAccounts[idx].name;
+            document.getElementById('ban-modal').style.display = "block";
+        }
+
+        function closeBanModal() {
+            document.getElementById('ban-modal').style.display = "none";
+        }
+
+        function confirmBanAction() {
+            const reason = document.getElementById('ban-reason-input').value || "Staff decision.";
+            const time = parseInt(document.getElementById('ban-time-input').value);
+            const expiry = (time === -1) ? -1 : Date.now() + (time * 60000);
+
+            allAccounts[targetIdx].banData = { reason, expiry };
+            allAccounts[targetIdx].status = "Banned"; 
+
+            db.ref('accounts').set(allAccounts).then(() => {
+                closeBanModal();
+            });
+        }
+
+        function unbanUser(idx) {
+            allAccounts[idx].banData = null;
+            allAccounts[idx].status = "Active";
+            db.ref('accounts').set(allAccounts);
+        }
+
+        function showBanUI(r, e) {
+            showScreen('banned-screen');
+            document.getElementById('ban-reason-display').innerText = r;
+            document.getElementById('ban-expiry-display').innerText = (e === -1) ? "Permanent" : new Date(e).toLocaleString();
+        }
+
+        function logOut() {
+            localStorage.removeItem('nls_session');
+            location.reload();
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById(id).classList.add('active-screen');
+        }
+    </script>
+</body>
+</html>
