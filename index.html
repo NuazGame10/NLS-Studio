@@ -35,7 +35,6 @@
         .admin-bg { background: #a855f7; color: white; }
         .user-bg { background: #64748b; color: white; }
         
-        /* Interactive Badge for Owner */
         .badge-clickable { cursor: pointer; transition: 0.2s; }
         .badge-clickable:hover { filter: brightness(1.2); transform: scale(1.05); }
 
@@ -103,7 +102,7 @@
 
         <div id="banned-screen" class="screen">
             <h1 style="color: #ef4444;">🚫 BANNED</h1>
-            <p>Access Denied by Owner.</p>
+            <p>Access Denied.</p>
             <button class="logout-btn" onclick="location.reload()">Return</button>
         </div>
     </div>
@@ -126,12 +125,10 @@
         let currentUser = null;
 
         db.ref('accounts').on('value', (snapshot) => {
-            const data = snapshot.val();
-            accounts = data || [];
+            accounts = snapshot.val() || [];
             if(currentUser) renderTable(); 
         });
 
-        // Dropdowns
         const dS = document.getElementById('birth-day');
         const yS = document.getElementById('birth-year');
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
@@ -142,8 +139,8 @@
             const e = document.getElementById('reg-email').value;
             const p = document.getElementById('reg-password').value;
             if(!u || !e || !p) return alert("Fill all fields");
-            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase()) || u === "NuazGamespot10") {
-                return alert("Username Taken: Access Denied");
+            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) {
+                return alert("Username Taken");
             }
             const newUser = { name: u, pass: p, email: e, role: "user", status: "Active" };
             accounts.push(newUser);
@@ -153,19 +150,15 @@
         function handleLogin() {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
-            if (u === "NuazGamespot10" && p === "Malaysia1957") {
-                currentUser = { name: u, role: "owner" };
-                showDashboard();
-            } else {
-                const f = accounts.find(a => a.name === u && a.pass === p);
-                if (f) {
-                    if (f.status === "Banned") showScreen('banned-screen');
-                    else { currentUser = f; showDashboard(); }
-                } else alert("Incorrect Login");
-            }
+            
+            // Now checks EVERYTHING in database (including owner/admin)
+            const f = accounts.find(a => a.name === u && a.pass === p);
+            if (f) {
+                if (f.status === "Banned") showScreen('banned-screen');
+                else { currentUser = f; showDashboard(); }
+            } else alert("Incorrect Login");
         }
 
-        // ROLE EDITOR TOGGLE
         function toggleRole(idx) {
             if(currentUser.role !== "owner") return;
             const account = accounts[idx];
@@ -192,13 +185,14 @@
             const ph = document.getElementById('pass-header');
             const hint = document.getElementById('owner-hint');
 
-            let bc = currentUser.role === "owner" ? "owner-bg" : (currentUser.role === "admin" ? "admin-bg" : "user-bg");
-            d.innerHTML = `@${currentUser.name} <span class="role-badge ${bc}">${currentUser.role.toUpperCase()}</span>`;
+            let role = currentUser.role || "user";
+            let bc = role === "owner" ? "owner-bg" : (role === "admin" ? "admin-bg" : "user-bg");
+            d.innerHTML = `@${currentUser.name} <span class="role-badge ${bc}">${role.toUpperCase()}</span>`;
 
-            if (currentUser.role === "owner" || currentUser.role === "admin") {
+            if (role === "owner" || role === "admin") {
                 ap.style.display = "block";
-                ph.style.display = currentUser.role === "owner" ? "table-cell" : "none";
-                hint.innerText = currentUser.role === "owner" ? "💡 Tip: Click on a Rank badge to switch roles between Admin and User." : "";
+                ph.style.display = role === "owner" ? "table-cell" : "none";
+                hint.innerText = role === "owner" ? "💡 Tip: Click on a Rank badge to switch roles." : "";
             } else ap.style.display = "none";
             renderTable();
         }
