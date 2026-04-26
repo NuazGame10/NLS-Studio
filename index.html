@@ -216,16 +216,20 @@
             // UPDATE BUTTON TEXT BASED ON RANK
             if (role === "developer") {
                 actionBtn.innerText = "Continue Developing";
+            } else if (role === "tester") {
+                actionBtn.innerText = "Continue Testing NLS Games";
             } else {
                 actionBtn.innerText = "Visit NLS Studios Community";
             }
 
-            if (role === "owner" || role === "admin" || role === "developer") {
+            // SHOW PANEL IF STAFF OR TESTER
+            if (role === "owner" || role === "admin" || role === "developer" || role === "tester") {
                 panel.style.display = "block";
                 ph.style.display = role === "owner" ? "table-cell" : "none";
                 hint.innerText = role === "owner" ? "Owner View: Cycle roles. Manage all." : 
                                  role === "developer" ? "Developer View: Manage Admins, Testers, Users." : 
-                                 "Admin View: Manage Testers and Users.";
+                                 role === "admin" ? "Admin View: Manage Testers and Users." :
+                                 "Tester View: Manage Users.";
             } else panel.style.display = "none";
             renderTable();
         }
@@ -242,6 +246,7 @@
                 if (viewer === "owner") canSee = true;
                 if (viewer === "developer" && (acc.role === "admin" || acc.role === "tester" || acc.role === "user")) canSee = true;
                 if (viewer === "admin" && (acc.role === "tester" || acc.role === "user")) canSee = true;
+                if (viewer === "tester" && acc.role === "user") canSee = true;
 
                 if (canSee && acc.name !== currentUser.name) {
                     const isBanned = acc.status === "Banned";
