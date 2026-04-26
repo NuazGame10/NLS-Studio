@@ -30,11 +30,15 @@
         th { color: #94a3b8; font-size: 0.75rem; padding: 10px; border-bottom: 1px solid #334155; text-transform: uppercase; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
         
-        .role-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 5px; }
+        .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 5px; border: none; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
         .admin-bg { background: #a855f7; color: white; }
         .user-bg { background: #64748b; color: white; }
         
+        /* Interactive Badge for Owner */
+        .badge-clickable { cursor: pointer; transition: 0.2s; }
+        .badge-clickable:hover { filter: brightness(1.2); transform: scale(1.05); }
+
         .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; }
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
         
@@ -60,7 +64,6 @@
 
         <div id="signup-screen" class="screen">
             <h2 style="margin-bottom: 15px;">NLS Account Sign Up</h2>
-            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 15px;">Enter your birthday</p>
             <div class="birthday-row">
                 <select id="birth-day"></select>
                 <select id="birth-month">
@@ -83,6 +86,7 @@
             <p id="user-display" style="margin-top: 5px; margin-bottom: 20px;"></p>
             
             <div id="admin-panel" style="display:none; background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto;">
+                <p style="font-size: 0.7rem; color: #94a3b8; text-align: left; margin-bottom: 10px;" id="owner-hint"></p>
                 <table>
                     <thead>
                         <tr><th>User</th><th>Rank</th><th id="pass-header" style="display:none;">Password</th><th>Status</th><th>Actions</th></tr>
@@ -127,52 +131,46 @@
             if(currentUser) renderTable(); 
         });
 
-        const daySelect = document.getElementById('birth-day');
-        const yearSelect = document.getElementById('birth-year');
-        for(let i=1; i<=31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
-        for(let i=2026; i>=1950; i--) yearSelect.innerHTML += `<option value="${i}">${i}</option>`;
+        // Dropdowns
+        const dS = document.getElementById('birth-day');
+        const yS = document.getElementById('birth-year');
+        for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
+        for(let i=2026; i>=1950; i--) yS.innerHTML += `<option value="${i}">${i}</option>`;
 
         function handleSignUp() {
             const u = document.getElementById('reg-username').value;
             const e = document.getElementById('reg-email').value;
             const p = document.getElementById('reg-password').value;
-            
-            if(!u || !e || !p) return alert("Please fill all fields");
-
-            // CHECK IF USERNAME IS TAKEN (Including Owner name)
-            const isTaken = accounts.some(a => a.name.toLowerCase() === u.toLowerCase()) || u === "NuazGamespot10";
-            
-            if(isTaken) {
-                alert("Username Taken: Access Denied");
-                return; // Stop the sign up
+            if(!u || !e || !p) return alert("Fill all fields");
+            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase()) || u === "NuazGamespot10") {
+                return alert("Username Taken: Access Denied");
             }
-
-            const newUser = {
-                name: u, pass: p, email: e, role: "user", status: "Active",
-                birthday: `${document.getElementById('birth-day').value} ${document.getElementById('birth-month').value} ${document.getElementById('birth-year').value}`
-            };
-
+            const newUser = { name: u, pass: p, email: e, role: "user", status: "Active" };
             accounts.push(newUser);
-            db.ref('accounts').set(accounts).then(() => {
-                alert("Account Created!");
-                showScreen('login-screen');
-            });
+            db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
         }
 
         function handleLogin() {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
-
             if (u === "NuazGamespot10" && p === "Malaysia1957") {
                 currentUser = { name: u, role: "owner" };
                 showDashboard();
             } else {
-                const found = accounts.find(a => a.name === u && a.pass === p);
-                if (found) {
-                    if (found.status === "Banned") showScreen('banned-screen');
-                    else { currentUser = found; showDashboard(); }
-                } else { alert("Incorrect Login"); }
+                const f = accounts.find(a => a.name === u && a.pass === p);
+                if (f) {
+                    if (f.status === "Banned") showScreen('banned-screen');
+                    else { currentUser = f; showDashboard(); }
+                } else alert("Incorrect Login");
             }
+        }
+
+        // ROLE EDITOR TOGGLE
+        function toggleRole(idx) {
+            if(currentUser.role !== "owner") return;
+            const account = accounts[idx];
+            account.role = account.role === "admin" ? "user" : "admin";
+            db.ref('accounts').set(accounts);
         }
 
         function toggleBan(idx) {
@@ -181,7 +179,7 @@
         }
 
         function removeAccount(idx) {
-            if(confirm("Permanently delete this account?")) {
+            if(confirm("Delete account permanently?")) {
                 accounts.splice(idx, 1);
                 db.ref('accounts').set(accounts);
             }
@@ -189,19 +187,19 @@
 
         function showDashboard() {
             showScreen('dashboard');
-            const display = document.getElementById('user-display');
-            const adminPanel = document.getElementById('admin-panel');
-            const passHeader = document.getElementById('pass-header');
+            const d = document.getElementById('user-display');
+            const ap = document.getElementById('admin-panel');
+            const ph = document.getElementById('pass-header');
+            const hint = document.getElementById('owner-hint');
 
-            let badgeClass = currentUser.role === "owner" ? "owner-bg" : (currentUser.role === "admin" ? "admin-bg" : "user-bg");
-            display.innerHTML = `@${currentUser.name} <span class="role-badge ${badgeClass}">${currentUser.role.toUpperCase()}</span>`;
+            let bc = currentUser.role === "owner" ? "owner-bg" : (currentUser.role === "admin" ? "admin-bg" : "user-bg");
+            d.innerHTML = `@${currentUser.name} <span class="role-badge ${bc}">${currentUser.role.toUpperCase()}</span>`;
 
             if (currentUser.role === "owner" || currentUser.role === "admin") {
-                adminPanel.style.display = "block";
-                passHeader.style.display = currentUser.role === "owner" ? "table-cell" : "none";
-            } else {
-                adminPanel.style.display = "none";
-            }
+                ap.style.display = "block";
+                ph.style.display = currentUser.role === "owner" ? "table-cell" : "none";
+                hint.innerText = currentUser.role === "owner" ? "💡 Tip: Click on a Rank badge to switch roles between Admin and User." : "";
+            } else ap.style.display = "none";
             renderTable();
         }
 
@@ -209,24 +207,26 @@
             const list = document.getElementById('user-list');
             list.innerHTML = "";
             accounts.forEach((acc, index) => {
-                const isOwnerViewing = currentUser.role === "owner";
-                const isAdminViewingUser = (currentUser.role === "admin" && acc.role === "user");
-
-                if (isOwnerViewing || isAdminViewingUser) {
+                const isOwner = currentUser.role === "owner";
+                const isAdmin = currentUser.role === "admin";
+                
+                if (isOwner || (isAdmin && acc.role === "user")) {
                     const isBanned = acc.status === "Banned";
                     const row = document.createElement('tr');
-                    let badgeClass = acc.role === 'admin' ? "admin-bg" : (acc.role === 'owner' ? "owner-bg" : "user-bg");
                     
-                    let content = `<td>${acc.name}</td><td><span class="role-badge ${badgeClass}">${acc.role.toUpperCase()}</span></td>`;
-                    if (isOwnerViewing) content += `<td><span style="color:#fbbf24; font-family:monospace;">${acc.pass}</span></td>`;
+                    let bc = acc.role === 'admin' ? "admin-bg" : (acc.role === 'owner' ? "owner-bg" : "user-bg");
+                    let clickable = isOwner && acc.role !== 'owner' ? "badge-clickable" : "";
+                    let clickAction = isOwner && acc.role !== 'owner' ? `onclick="toggleRole(${index})"` : "";
+
+                    let content = `<td>${acc.name}</td>
+                                   <td><span class="role-badge ${bc} ${clickable}" ${clickAction}>${acc.role.toUpperCase()}</span></td>`;
+                    
+                    if (isOwner) content += `<td><span style="color:#fbbf24; font-family:monospace;">${acc.pass}</span></td>`;
+                    
                     content += `<td class="${isBanned ? 'status-banned' : 'status-active'}">${acc.status}</td>
                                 <td class="action-cell">
                                     <button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button>`;
-                    
-                    if (isOwnerViewing) {
-                        content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
-                    }
-
+                    if (isOwner) content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
                     content += `</td>`;
                     row.innerHTML = content;
                     list.appendChild(row);
