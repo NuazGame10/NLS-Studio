@@ -30,20 +30,24 @@
         th { color: #94a3b8; font-size: 0.75rem; padding: 10px; border-bottom: 1px solid #334155; text-transform: uppercase; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
         
-        .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 5px; border: none; }
+        .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: none; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
+        .dev-bg { background: #0ea5e9; color: white; }
         .admin-bg { background: #a855f7; color: white; }
+        .tester-bg { background: #10b981; color: white; }
         .user-bg { background: #64748b; color: white; }
         
         .badge-clickable { cursor: pointer; transition: 0.2s; }
-        .badge-clickable:hover { filter: brightness(1.2); transform: scale(1.05); }
+        .badge-clickable:hover { filter: brightness(1.2); }
 
-        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; }
+        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; transition: 0.2s; }
+        .community-btn:hover { background: #f1f5f9; transform: scale(1.02); }
+        
         .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; }
         
         .action-cell { display: flex; gap: 5px; }
         .ban-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; min-width: 55px; }
-        .remove-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; background: #475569; transition: 0.3s; }
+        .remove-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; background: #475569; }
         .remove-btn:hover { background: #ef4444; }
 
         .status-active { color: #4ade80; }
@@ -84,8 +88,8 @@
             <h2 id="welcome-msg">Welcome</h2>
             <p id="user-display" style="margin-top: 5px; margin-bottom: 20px;"></p>
             
-            <div id="admin-panel" style="display:none; background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto;">
-                <p style="font-size: 0.7rem; color: #94a3b8; text-align: left; margin-bottom: 10px;" id="owner-hint"></p>
+            <div id="staff-panel" style="display:none; background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto;">
+                <p style="font-size: 0.7rem; color: #94a3b8; text-align: left; margin-bottom: 10px;" id="panel-hint"></p>
                 <table>
                     <thead>
                         <tr><th>User</th><th>Rank</th><th id="pass-header" style="display:none;">Password</th><th>Status</th><th>Actions</th></tr>
@@ -94,7 +98,7 @@
                 </table>
             </div>
             
-            <button class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
+            <button id="main-action-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
                 Visit NLS Studios Community
             </button>
             <button class="logout-btn" onclick="handleLogout()">Logout</button>
@@ -124,32 +128,22 @@
         let accounts = [];
         let currentUser = null;
 
-        // LOAD ACCOUNTS & CHECK PERSISTENCE
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
-            
-            // On first load or refresh, check if we have a saved user
             if(!currentUser) {
                 const savedUser = localStorage.getItem('nls_session');
                 if(savedUser) {
                     const parsed = JSON.parse(savedUser);
-                    // Re-verify against DB in case they got banned or deleted while away
                     const f = accounts.find(a => a.name === parsed.name && a.pass === parsed.pass);
                     if(f) {
                         if(f.status === "Banned") showScreen('banned-screen');
-                        else {
-                            currentUser = f;
-                            showDashboard();
-                        }
-                    } else {
-                        localStorage.removeItem('nls_session');
+                        else { currentUser = f; showDashboard(); }
                     }
                 }
             }
             if(currentUser) renderTable(); 
         });
 
-        // Birthdays
         const dS = document.getElementById('birth-day');
         const yS = document.getElementById('birth-year');
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
@@ -171,12 +165,10 @@
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
-            
             if (f) {
                 if (f.status === "Banned") showScreen('banned-screen');
                 else {
                     currentUser = f;
-                    // SAVE SESSION TO LOCAL STORAGE
                     localStorage.setItem('nls_session', JSON.stringify(f));
                     showDashboard();
                 }
@@ -190,7 +182,10 @@
 
         function toggleRole(idx) {
             if(currentUser.role !== "owner") return;
-            accounts[idx].role = accounts[idx].role === "admin" ? "user" : "admin";
+            const roles = ["user", "tester", "admin", "developer"];
+            let currentIdx = roles.indexOf(accounts[idx].role);
+            let nextIdx = (currentIdx + 1) % roles.length;
+            accounts[idx].role = roles[nextIdx];
             db.ref('accounts').set(accounts);
         }
 
@@ -209,42 +204,59 @@
         function showDashboard() {
             showScreen('dashboard');
             const d = document.getElementById('user-display');
-            const ap = document.getElementById('admin-panel');
+            const panel = document.getElementById('staff-panel');
             const ph = document.getElementById('pass-header');
-            const hint = document.getElementById('owner-hint');
+            const hint = document.getElementById('panel-hint');
+            const actionBtn = document.getElementById('main-action-btn');
 
             let role = currentUser.role || "user";
-            let bc = role === "owner" ? "owner-bg" : (role === "admin" ? "admin-bg" : "user-bg");
-            d.innerHTML = `@${currentUser.name} <span class="role-badge ${bc}">${role.toUpperCase()}</span>`;
+            let badgeColors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+            d.innerHTML = `@${currentUser.name} <span class="role-badge ${badgeColors[role]}">${role.toUpperCase()}</span>`;
 
-            if (role === "owner" || role === "admin") {
-                ap.style.display = "block";
+            // UPDATE BUTTON TEXT BASED ON RANK
+            if (role === "developer") {
+                actionBtn.innerText = "Continue Developing";
+            } else {
+                actionBtn.innerText = "Visit NLS Studios Community";
+            }
+
+            if (role === "owner" || role === "admin" || role === "developer") {
+                panel.style.display = "block";
                 ph.style.display = role === "owner" ? "table-cell" : "none";
-                hint.innerText = role === "owner" ? "💡 Tip: Click on a Rank badge to switch roles." : "";
-            } else ap.style.display = "none";
+                hint.innerText = role === "owner" ? "Owner View: Cycle roles. Manage all." : 
+                                 role === "developer" ? "Developer View: Manage Admins, Testers, Users." : 
+                                 "Admin View: Manage Testers and Users.";
+            } else panel.style.display = "none";
             renderTable();
         }
 
         function renderTable() {
             const list = document.getElementById('user-list');
             list.innerHTML = "";
+            const badgeColors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+
             accounts.forEach((acc, index) => {
-                const isOwner = currentUser.role === "owner";
-                const isAdmin = currentUser.role === "admin";
-                if (isOwner || (isAdmin && acc.role === "user")) {
+                const viewer = currentUser.role;
+                let canSee = false;
+
+                if (viewer === "owner") canSee = true;
+                if (viewer === "developer" && (acc.role === "admin" || acc.role === "tester" || acc.role === "user")) canSee = true;
+                if (viewer === "admin" && (acc.role === "tester" || acc.role === "user")) canSee = true;
+
+                if (canSee && acc.name !== currentUser.name) {
                     const isBanned = acc.status === "Banned";
                     const row = document.createElement('tr');
-                    let bc = acc.role === 'admin' ? "admin-bg" : (acc.role === 'owner' ? "owner-bg" : "user-bg");
-                    let clickable = isOwner && acc.role !== 'owner' ? "badge-clickable" : "";
-                    let clickAction = isOwner && acc.role !== 'owner' ? `onclick="toggleRole(${index})"` : "";
+                    
+                    let clickable = viewer === "owner" ? "badge-clickable" : "";
+                    let clickAction = viewer === "owner" ? `onclick="toggleRole(${index})"` : "";
 
                     let content = `<td>${acc.name}</td>
-                                   <td><span class="role-badge ${bc} ${clickable}" ${clickAction}>${acc.role.toUpperCase()}</span></td>`;
-                    if (isOwner) content += `<td><span style="color:#fbbf24; font-family:monospace;">${acc.pass}</span></td>`;
+                                   <td><span class="role-badge ${badgeColors[acc.role]} ${clickable}" ${clickAction}>${acc.role.toUpperCase()}</span></td>`;
+                    if (viewer === "owner") content += `<td><span style="color:#fbbf24; font-family:monospace;">${acc.pass}</span></td>`;
                     content += `<td class="${isBanned ? 'status-banned' : 'status-active'}">${acc.status}</td>
                                 <td class="action-cell">
                                     <button class="ban-btn" style="background:${isBanned ? '#4ade80' : '#ef4444'}" onclick="toggleBan(${index})">${isBanned ? 'Unban' : 'Ban'}</button>`;
-                    if (isOwner) content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
+                    if (viewer === "owner") content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
                     content += `</td>`;
                     row.innerHTML = content;
                     list.appendChild(row);
@@ -259,3 +271,4 @@
     </script>
 </body>
 </html>
+
