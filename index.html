@@ -219,8 +219,6 @@
 
             accounts.forEach((acc, index) => {
                 const viewer = currentUser.role;
-                
-                // RESTRICTION: Co-Owner cannot see Owner in the list at all.
                 if (viewer === "co-owner" && acc.role === "owner") return;
 
                 let canSee = false;
@@ -231,8 +229,6 @@
 
                 if (canSee && acc.name !== currentUser.name) {
                     const row = document.createElement('tr');
-                    
-                    // PERMISSION: Both Owner and Co-Owner can now click to change roles.
                     let clickable = (viewer === "owner" || viewer === "co-owner") ? "badge-clickable" : "";
                     
                     let content = `<td>${acc.name}</td>
@@ -246,7 +242,6 @@
                         <td class="action-cell">
                             <button class="ban-btn" style="background:${acc.status === 'Banned' ? '#4ade80' : '#ef4444'}" onclick="${acc.status === 'Banned' ? `unbanUser(${index})` : `openBanModal(${index})`}">${acc.status === 'Banned' ? 'Unban' : 'Ban'}</button>`;
                     
-                    // ONLY Owner has the Remove button.
                     if (viewer === "owner") {
                         content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
                     }
@@ -265,8 +260,21 @@
         }
 
         function toggleRole(idx) {
-            const roles = ["user", "tester", "admin", "developer", "co-owner"];
-            let nextIdx = (roles.indexOf(accounts[idx].role) + 1) % roles.length;
+            const viewerRole = currentUser.role;
+            let roles;
+            
+            // SECURITY: Owner can assign anything. Co-Owner can only assign listed staff roles.
+            if (viewerRole === "owner") {
+                roles = ["user", "tester", "admin", "developer", "co-owner"];
+            } else {
+                roles = ["user", "tester", "admin", "developer"];
+            }
+
+            let currentIdx = roles.indexOf(accounts[idx].role);
+            // If account is currently a Co-Owner but a Co-Owner is trying to change it, it resets to User.
+            if (currentIdx === -1) currentIdx = 0; 
+            
+            let nextIdx = (currentIdx + 1) % roles.length;
             accounts[idx].role = roles[nextIdx];
             db.ref('accounts').set(accounts);
         }
