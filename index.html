@@ -26,10 +26,17 @@
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; }
+        /* Panel Styling */
+        #staff-panel { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto; transition: all 0.3s ease; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .minimize-btn { background: #334155; color: #f8fafc; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
+        .minimize-btn:hover { background: #475569; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
         th { color: #94a3b8; font-size: 0.75rem; padding: 10px; border-bottom: 1px solid #334155; text-transform: uppercase; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
         
+        /* Badges */
         .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; border: none; }
         .owner-bg { background: #38bdf8; color: #0f172a; }
         .dev-bg { background: #0ea5e9; color: white; }
@@ -48,7 +55,6 @@
         .action-cell { display: flex; gap: 5px; }
         .ban-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; min-width: 55px; }
         .remove-btn { padding: 5px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; background: #475569; }
-        .remove-btn:hover { background: #ef4444; }
 
         .status-active { color: #4ade80; }
         .status-banned { color: #ef4444; text-decoration: line-through; }
@@ -88,14 +94,20 @@
             <h2 id="welcome-msg">Welcome</h2>
             <p id="user-display" style="margin-top: 5px; margin-bottom: 20px;"></p>
             
-            <div id="staff-panel" style="display:none; background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; overflow-x: auto;">
-                <p style="font-size: 0.7rem; color: #94a3b8; text-align: left; margin-bottom: 10px;" id="panel-hint"></p>
-                <table>
-                    <thead>
-                        <tr><th>User</th><th>Rank</th><th id="pass-header" style="display:none;">Password</th><th>Status</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody id="user-list"></tbody>
-                </table>
+            <div id="panel-container" style="display:none;">
+                <div class="panel-header">
+                    <p style="font-size: 0.7rem; color: #94a3b8;" id="panel-hint"></p>
+                    <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">Minimize Panel</button>
+                </div>
+                
+                <div id="staff-panel">
+                    <table>
+                        <thead>
+                            <tr><th>User</th><th>Rank</th><th id="pass-header" style="display:none;">Password</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="user-list"></tbody>
+                    </table>
+                </div>
             </div>
             
             <button id="main-action-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
@@ -180,6 +192,18 @@
             location.reload();
         }
 
+        function togglePanelVisibility() {
+            const panel = document.getElementById('staff-panel');
+            const btn = document.getElementById('toggle-panel-btn');
+            if (panel.style.display === "none") {
+                panel.style.display = "block";
+                btn.innerText = "Minimize Panel";
+            } else {
+                panel.style.display = "none";
+                btn.innerText = "View Staff Panel";
+            }
+        }
+
         function toggleRole(idx) {
             if(currentUser.role !== "owner") return;
             const roles = ["user", "tester", "admin", "developer"];
@@ -204,7 +228,7 @@
         function showDashboard() {
             showScreen('dashboard');
             const d = document.getElementById('user-display');
-            const panel = document.getElementById('staff-panel');
+            const container = document.getElementById('panel-container');
             const ph = document.getElementById('pass-header');
             const hint = document.getElementById('panel-hint');
             const actionBtn = document.getElementById('main-action-btn');
@@ -213,24 +237,15 @@
             let badgeColors = { owner: "owner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
             d.innerHTML = `@${currentUser.name} <span class="role-badge ${badgeColors[role]}">${role.toUpperCase()}</span>`;
 
-            // UPDATE BUTTON TEXT BASED ON RANK
-            if (role === "developer") {
-                actionBtn.innerText = "Continue Developing";
-            } else if (role === "tester") {
-                actionBtn.innerText = "Continue Testing NLS Games";
-            } else {
-                actionBtn.innerText = "Visit NLS Studios Community";
-            }
+            if (role === "developer") actionBtn.innerText = "Continue Developing";
+            else if (role === "tester") actionBtn.innerText = "Continue Testing NLS Games";
+            else actionBtn.innerText = "Visit NLS Studios Community";
 
-            // SHOW PANEL IF STAFF OR TESTER
             if (role === "owner" || role === "admin" || role === "developer" || role === "tester") {
-                panel.style.display = "block";
+                container.style.display = "block";
                 ph.style.display = role === "owner" ? "table-cell" : "none";
-                hint.innerText = role === "owner" ? "Owner View: Cycle roles. Manage all." : 
-                                 role === "developer" ? "Developer View: Manage Admins, Testers, Users." : 
-                                 role === "admin" ? "Admin View: Manage Testers and Users." :
-                                 "Tester View: Manage Users.";
-            } else panel.style.display = "none";
+                hint.innerText = role === "owner" ? "Owner View" : (role === "developer" ? "Developer View" : (role === "admin" ? "Admin View" : "Tester View"));
+            } else container.style.display = "none";
             renderTable();
         }
 
@@ -251,7 +266,6 @@
                 if (canSee && acc.name !== currentUser.name) {
                     const isBanned = acc.status === "Banned";
                     const row = document.createElement('tr');
-                    
                     let clickable = viewer === "owner" ? "badge-clickable" : "";
                     let clickAction = viewer === "owner" ? `onclick="toggleRole(${index})"` : "";
 
