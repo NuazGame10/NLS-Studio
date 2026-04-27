@@ -85,6 +85,7 @@
                 <select id="birth-year"></select>
             </div>
             <input type="text" id="reg-username" placeholder="Username">
+            <input type="text" id="reg-roblox" placeholder="Roblox Username">
             <input type="email" id="reg-email" placeholder="Email">
             <input type="password" id="reg-password" placeholder="Password">
             <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
@@ -165,14 +166,35 @@
             if(currentUser) renderTable(); 
         });
 
+        // FIXED: Birthday and Roblox Username now list in Firebase
         function handleSignUp() {
             const u = document.getElementById('reg-username').value;
+            const r = document.getElementById('reg-roblox').value;
             const e = document.getElementById('reg-email').value;
             const p = document.getElementById('reg-password').value;
-            if(!u || !e || !p) return alert("Fill all fields");
+            const bDay = document.getElementById('birth-day').value;
+            const bMonth = document.getElementById('birth-month').value;
+            const bYear = document.getElementById('birth-year').value;
+            
+            if(!u || !r || !e || !p) return alert("Fill all fields");
             if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
-            accounts.push({ name: u, pass: p, email: e, role: "user", status: "Active" });
-            db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
+            
+            const birthdayStr = `${bDay}-${bMonth}-${bYear}`;
+            
+            accounts.push({ 
+                name: u, 
+                robloxName: r,
+                pass: p, 
+                email: e, 
+                birthday: birthdayStr, 
+                role: "user", 
+                status: "Active" 
+            });
+            
+            db.ref('accounts').set(accounts).then(() => { 
+                alert("Created!"); 
+                showScreen('login-screen'); 
+            });
         }
 
         function handleLogin() {
@@ -263,7 +285,6 @@
             const viewerRole = currentUser.role;
             let roles;
             
-            // SECURITY: Owner can assign anything. Co-Owner can only assign listed staff roles.
             if (viewerRole === "owner") {
                 roles = ["user", "tester", "admin", "developer", "co-owner"];
             } else {
@@ -271,7 +292,6 @@
             }
 
             let currentIdx = roles.indexOf(accounts[idx].role);
-            // If account is currently a Co-Owner but a Co-Owner is trying to change it, it resets to User.
             if (currentIdx === -1) currentIdx = 0; 
             
             let nextIdx = (currentIdx + 1) % roles.length;
