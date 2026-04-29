@@ -88,6 +88,13 @@
             <input type="text" id="reg-roblox" placeholder="Roblox Username">
             <input type="email" id="reg-email" placeholder="Email">
             <input type="password" id="reg-password" placeholder="Password">
+            
+            <select id="reg-gender">
+                <option value="" disabled selected>Select Gender</option>
+                <option value="Boy">Boy</option>
+                <option value="Girl">Girl</option>
+            </select>
+
             <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
             <button class="logout-btn" onclick="showScreen('login-screen')">Back to Login</button>
         </div>
@@ -166,17 +173,17 @@
             if(currentUser) renderTable(); 
         });
 
-        // FIXED: Birthday and Roblox Username now list in Firebase
         function handleSignUp() {
             const u = document.getElementById('reg-username').value;
             const r = document.getElementById('reg-roblox').value;
             const e = document.getElementById('reg-email').value;
             const p = document.getElementById('reg-password').value;
+            const g = document.getElementById('reg-gender').value;
             const bDay = document.getElementById('birth-day').value;
             const bMonth = document.getElementById('birth-month').value;
             const bYear = document.getElementById('birth-year').value;
             
-            if(!u || !r || !e || !p) return alert("Fill all fields");
+            if(!u || !r || !e || !p || !g) return alert("Fill all fields including gender");
             if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
             
             const birthdayStr = `${bDay}-${bMonth}-${bYear}`;
@@ -186,7 +193,8 @@
                 robloxName: r,
                 pass: p, 
                 email: e, 
-                birthday: birthdayStr, 
+                birthday: birthdayStr,
+                gender: g,
                 role: "user", 
                 status: "Active" 
             });
@@ -284,12 +292,8 @@
         function toggleRole(idx) {
             const viewerRole = currentUser.role;
             let roles;
-            
-            if (viewerRole === "owner") {
-                roles = ["user", "tester", "admin", "developer", "co-owner"];
-            } else {
-                roles = ["user", "tester", "admin", "developer"];
-            }
+            if (viewerRole === "owner") roles = ["user", "tester", "admin", "developer", "co-owner"];
+            else roles = ["user", "tester", "admin", "developer"];
 
             let currentIdx = roles.indexOf(accounts[idx].role);
             if (currentIdx === -1) currentIdx = 0; 
