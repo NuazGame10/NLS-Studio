@@ -9,193 +9,217 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #0f172a; color: #f8fafc; padding: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         
+        body { 
+            min-height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            background: #000; 
+            color: #f8fafc; 
+            padding: 20px;
+            overflow-x: hidden; 
+            position: relative;
+        }
+
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 200%; height: 200%;
+            background-image: 
+                linear-gradient(to right, rgba(168, 85, 247, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(168, 85, 247, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -2;
+            animation: moveGrid 30s linear infinite;
+            pointer-events: none;
+        }
+
+        #cursor-glow {
+            position: fixed;
+            top: 0; left: 0;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        @keyframes moveGrid { 0% { transform: translate(0, 0); } 100% { transform: translate(-50px, -50px); } }
+
         .container { 
-            background: rgba(30, 41, 59, 0.8); 
-            padding: 30px; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
+            background: rgba(10, 10, 10, 0.96); 
+            padding: 30px 20px; 
+            border-radius: 4px; 
+            box-shadow: 0 0 50px #000, 0 0 20px rgba(168, 85, 247, 0.2); 
             width: 100%; 
             max-width: 900px; 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border: 1px solid #333; 
             text-align: center; 
             position: relative; 
+            backdrop-filter: blur(20px);
+            z-index: 10;
         }
-        
-        input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 12px; outline: none; font-size: 16px; }
-        
-        .btn-primary { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .btn-secondary { background: transparent; color: #38bdf8; border: 1px solid #38bdf8; margin-top: 10px; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        .birthday-row { display: flex; gap: 8px; margin-bottom: 12px; }
-        .birthday-row select { margin-bottom: 0; flex: 1; }
+        h2 { font-weight: 700; letter-spacing: 4px; margin-bottom: 30px; text-transform: uppercase; color: #fff; text-shadow: 0 0 15px rgba(168, 85, 247, 0.6); font-size: 1.5rem; }
+        
+        input, select, textarea { 
+            width: 100%; padding: 14px; border-radius: 4px; border: 1px solid #333; 
+            background: #111; color: #fff; margin-bottom: 15px; outline: none; font-size: 14px; 
+        }
+
+        .btn-primary { 
+            width: 100%; padding: 14px; border: none; border-radius: 4px; 
+            background: linear-gradient(90deg, #a855f7, #7e22ce); color: white; 
+            font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .btn-secondary { background: transparent; color: #666; border: 1px solid #222; margin-top: 10px; width: 100%; padding: 12px; border-radius: 4px; cursor: pointer; }
+
+        .birthday-row { display: flex; gap: 5px; margin-bottom: 15px; }
+        .birthday-row select { margin-bottom: 0; flex: 1; font-size: 12px; }
 
         .screen { display: none; width: 100%; }
         .active-screen { display: block; animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        #ban-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 25px; border-radius: 12px; border: 2px solid #ef4444; width: 90%; max-width: 400px; z-index: 1000; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
 
-        /* FIXED MOBILE PANEL STYLE */
+        .role-badge { padding: 4px 10px; border-radius: 2px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; cursor: pointer; display: inline-block; white-space: nowrap; }
+        .owner-bg { background: #38bdf8; color: #000; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .co-owner-bg { background: transparent; color: #38bdf8; border: 1px solid #38bdf8; }
+        .developer-bg { background: #a855f7; color: #fff; }
+        .admin-bg { background: #ec4899; color: #fff; }
+        .tester-bg { background: #10b981; color: #fff; }
+        .user-bg { background: #333; color: #999; }
+
+        #ban-modal { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: #000; padding: 30px; border-radius: 4px; border: 1px solid #ef4444; 
+            width: 90%; max-width: 400px; z-index: 2000; box-shadow: 0 0 100px #000; 
+        }
+
         #staff-panel { 
-            background: #1e293b; 
-            padding: 10px; 
-            border-radius: 12px; 
-            margin-top: 10px; 
-            overflow-x: auto; /* Enables horizontal scroll on mobile */
-            -webkit-overflow-scrolling: touch;
-            border: 1px solid rgba(255,255,255,0.05);
+            background: #050505; margin-top: 20px; border: 1px solid #222; width: 100%;
+            display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 4px;
         }
 
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-        .minimize-btn { background: #334155; color: #f8fafc; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 700px; }
+        th { color: #444; font-size: 0.6rem; padding: 12px 10px; border-bottom: 1px solid #222; text-transform: uppercase; }
+        td { padding: 12px 10px; border-bottom: 1px solid #111; font-size: 0.75rem; white-space: nowrap; }
         
-        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 500px; /* Ensures table doesn't squash too small */ }
-        th { color: #94a3b8; font-size: 0.7rem; padding: 12px 8px; border-bottom: 1px solid #334155; text-transform: uppercase; white-space: nowrap; }
-        td { padding: 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; white-space: nowrap; }
-        
-        .role-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; display: inline-block; }
-        .badge-clickable { cursor: pointer; }
-        .owner-bg { background: #38bdf8; color: #0f172a; }
-        .coowner-bg { background: #0ea5e9; color: white; border: 1px solid #38bdf8; }
-        .dev-bg { background: #0ea5e9; color: white; }
-        .admin-bg { background: #a855f7; color: white; }
-        .tester-bg { background: #10b981; color: white; }
-        .user-bg { background: #64748b; color: white; }
-        
-        .action-cell { display: flex; gap: 5px; }
-        .ban-btn { padding: 6px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; }
-        .remove-btn { padding: 6px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.7rem; color: white; font-weight: bold; background: #475569; }
+        .ban-btn { padding: 6px 10px; border-radius: 2px; border: none; cursor: pointer; font-size: 0.65rem; color: #fff; font-weight: bold; }
+        .remove-btn { padding: 6px 10px; border-radius: 2px; border: 1px solid #333; cursor: pointer; font-size: 0.65rem; color: #666; background: transparent; margin-left: 5px; }
 
-        .community-btn { background: #ffffff; color: #000000; margin: 25px auto 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; width: 100%; max-width: 350px; font-size: 0.9rem; border-radius: 8px; font-weight: bold; padding: 12px; border: none; cursor: pointer; }
-        .logout-btn { background: transparent; color: #94a3b8; text-decoration: underline; margin-top: 15px; font-size: 0.8rem; cursor: pointer; border: none; display: inline-block; }
-        .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
-
-        /* Mobile Adjustments */
-        @media (max-width: 600px) {
-            .container { padding: 20px 15px; }
-            h2 { font-size: 1.5rem; }
-            .birthday-row { flex-wrap: wrap; }
-            .birthday-row select { flex: 1 1 30%; }
-        }
+        .community-btn { background: #fff; color: #000; margin-top: 30px; width: 100%; font-size: 0.85rem; border-radius: 4px; font-weight: bold; padding: 15px; cursor: pointer; border: none; text-transform: uppercase; }
+        .logout-btn { background: transparent; color: #444; margin-top: 20px; font-size: 0.75rem; cursor: pointer; border: none; text-decoration: underline; }
     </style>
 </head>
 <body>
 
+    <div class="bg-animation"></div>
+    <div id="cursor-glow"></div>
+
     <div class="container">
         <div id="ban-modal">
-            <h3 style="color: #ef4444; margin-bottom: 15px;">Moderate Account</h3>
-            <p id="ban-target-name" style="margin-bottom: 10px; font-weight: bold;"></p>
-            <textarea id="ban-reason" placeholder="Type reason for ban..."></textarea>
-            <button class="btn-primary" style="background: #ef4444; color: white;" onclick="submitBan()">CONFIRM BAN</button>
-            <button class="logout-btn" onclick="closeBanModal()">Cancel</button>
+            <h3 style="color: #ef4444; margin-bottom: 15px; letter-spacing: 2px;">MODERATE ACCOUNT</h3>
+            <p id="ban-target-name" style="margin-bottom: 10px; font-size: 0.8rem; color: #94a3b8;"></p>
+            <textarea id="ban-reason" placeholder="Type reason..."></textarea>
+            <button class="btn-primary" style="background: #ef4444;" onclick="submitBan()">CONFIRM BAN</button>
+            <button class="logout-btn" onclick="closeBanModal()">CANCEL</button>
         </div>
 
         <div id="login-screen" class="screen active-screen">
             <h2>NLS STUDIO</h2>
-            <input type="text" id="login-username" placeholder="Username">
-            <input type="password" id="login-password" placeholder="Password">
-            <button class="btn-primary" onclick="handleLogin()">Sign In</button>
-            <button class="btn-secondary" onclick="showScreen('signup-screen')">Create New Account</button>
+            <input type="text" id="login-username" placeholder="USERNAME">
+            <input type="password" id="login-password" placeholder="PASSWORD">
+            <button class="btn-primary" onclick="handleLogin()">LOGIN</button>
+            <button class="btn-secondary" onclick="showScreen('signup-screen')">CREATE ACCOUNT</button>
         </div>
 
         <div id="signup-screen" class="screen">
-            <h2>NLS Account Sign Up</h2>
+            <h2>SIGN UP</h2>
             <div class="birthday-row">
                 <select id="birth-day"></select>
                 <select id="birth-month">
-                    <option value="Jan">Jan</option><option value="Feb">Feb</option><option value="Mar">Mar</option>
-                    <option value="Apr">Apr</option><option value="May">May</option><option value="Jun">Jun</option>
-                    <option value="Jul">Jul</option><option value="Aug">Aug</option><option value="Sep">Sep</option>
-                    <option value="Oct">Oct</option><option value="Nov">Nov</option><option value="Dec">Dec</option>
+                    <option value="Jan">JAN</option><option value="Feb">FEB</option><option value="Mar">MAR</option>
+                    <option value="Apr">APR</option><option value="May">MAY</option><option value="Jun">JUN</option>
+                    <option value="Jul">JUL</option><option value="Aug">AUG</option><option value="Sep">SEP</option>
+                    <option value="Oct">OCT</option><option value="Nov">NOV</option><option value="Dec">DEC</option>
                 </select>
                 <select id="birth-year"></select>
             </div>
-            <input type="text" id="reg-username" placeholder="Username">
-            <input type="text" id="reg-roblox" placeholder="Roblox Username">
-            <input type="email" id="reg-email" placeholder="Email">
-            <input type="password" id="reg-password" placeholder="Password">
+            <input type="text" id="reg-username" placeholder="USERNAME">
+            <input type="text" id="reg-roblox" placeholder="ROBLOX USERNAME">
+            <input type="email" id="reg-email" placeholder="EMAIL ADDRESS">
+            <input type="password" id="reg-password" placeholder="CREATE PASSWORD">
             <select id="reg-gender">
-                <option value="" disabled selected>Select Gender</option>
-                <option value="Boy">Boy</option>
-                <option value="Girl">Girl</option>
+                <option value="" disabled selected>GENDER</option>
+                <option value="Boy">BOY</option>
+                <option value="Girl">GIRL</option>
             </select>
-            <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
-            <button class="logout-btn" onclick="showScreen('login-screen')">Back to Login</button>
+            <button class="btn-primary" onclick="handleSignUp()">REGISTER</button>
+            <button class="logout-btn" onclick="showScreen('login-screen')">BACK</button>
         </div>
 
         <div id="dashboard" class="screen">
-            <h2 id="welcome-msg">Welcome</h2>
-            <p id="user-display" style="margin-bottom: 20px;"></p>
+            <h2 id="welcome-msg">WELCOME</h2>
+            <p id="user-display" style="margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8;"></p>
             
             <div id="panel-container" style="display:none;">
-                <div class="panel-header">
-                    <p style="font-size: 0.7rem; color: #94a3b8;" id="panel-hint"></p>
-                    <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">Minimize Panel</button>
+                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <p style="font-size: 0.6rem; color: #444;">STAFF PANEL</p>
+                    <button class="btn-secondary" style="width:auto; margin:0; padding:5px 10px; font-size:0.6rem;" onclick="togglePanelVisibility()">HIDE</button>
                 </div>
                 <div id="staff-panel">
                     <table>
                         <thead>
-                            <tr><th>User</th><th>Rank</th><th class="pass-col" style="display:none;">Pass</th><th>Status</th><th>Actions</th></tr>
+                            <tr>
+                                <th>User</th><th>Rank</th><th>Gender</th><th id="pass-header" style="display:none;">Pass</th><th>Status</th><th>Actions</th>
+                            </tr>
                         </thead>
                         <tbody id="user-list"></tbody>
                     </table>
                 </div>
             </div>
-
-            <button id="main-action-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">
-                Visit NLS Studios Community
-            </button>
-            <button class="logout-btn" onclick="handleLogout()">Log Out</button>
-        </div>
-
-        <div id="banned-screen" class="screen">
-            <h1 style="color: #ef4444;">🚫 BANNED</h1>
-            <p style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Your account has been permanently banned by NLS Studio Staff.</p>
-            <div class="ban-box">
-                <p><strong>Reason:</strong> <span id="display-ban-reason"></span></p>
-            </div>
-            <button class="btn-primary" onclick="handleLogout()">Log Out</button>
+            <button id="dynamic-community-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">NLS COMMUNITY</button>
+            <button class="logout-btn" onclick="handleLogout()">LOG OUT</button>
         </div>
     </div>
 
     <script>
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyAjxklCo7h1l6UQwtLd-K7k4p_fe5SMh1k",
-            authDomain: "nls-studio.firebaseapp.com",
-            databaseURL: "https://nls-studio-default-rtdb.firebaseio.com", 
-            projectId: "nls-studio"
+        const glow = document.getElementById('cursor-glow');
+        const updateGlow = (e) => {
+            glow.style.opacity = "1";
+            const x = (e.clientX || (e.touches && e.touches[0].clientX));
+            const y = (e.clientY || (e.touches && e.touches[0].clientY));
+            glow.style.left = x + 'px'; glow.style.top = y + 'px';
         };
+        window.addEventListener('mousemove', updateGlow);
+        window.addEventListener('touchmove', updateGlow);
 
+        const firebaseConfig = { apiKey: "AIzaSyAjxklCo7h1l6UQwtLd-K7k4p_fe5SMh1k", authDomain: "nls-studio.firebaseapp.com", databaseURL: "https://nls-studio-default-rtdb.firebaseio.com", projectId: "nls-studio" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let accounts = [];
-        let currentUser = null;
-        let selectedUserIdx = null;
+        let accounts = []; let currentUser = null; let selectedUserIdx = null;
 
-        // Populate Birthday
-        const dS = document.getElementById('birth-day');
-        const yS = document.getElementById('birth-year');
+        const rankPower = { "owner": 100, "co-owner": 80, "developer": 60, "admin": 40, "tester": 20, "user": 0 };
+
+        const dS = document.getElementById('birth-day'); const yS = document.getElementById('birth-year');
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
         for(let i=2026; i>=1950; i--) yS.innerHTML += `<option value="${i}">${i}</option>`;
 
-        // DB Listener
         db.ref('accounts').on('value', (snapshot) => {
             accounts = snapshot.val() || [];
             const session = localStorage.getItem('nls_session');
             if(session) {
                 const parsed = JSON.parse(session);
-                const freshData = accounts.find(a => a.name === parsed.name);
-                if(freshData) {
-                    currentUser = freshData;
-                    if(freshData.status === "Banned") {
-                        showBanUI(freshData.banData?.reason || "Violation of rules.");
-                    } else if (document.getElementById('login-screen').classList.contains('active-screen') || document.getElementById('banned-screen').classList.contains('active-screen')) {
-                        showDashboard();
-                    }
+                const fresh = accounts.find(a => a.name === parsed.name);
+                if(fresh) {
+                    currentUser = fresh;
+                    if(fresh.status === "Banned") { alert("Banned!"); handleLogout(); }
+                    else if (document.getElementById('login-screen').classList.contains('active-screen')) showDashboard();
                 }
             }
             if(currentUser) renderTable(); 
@@ -210,145 +234,84 @@
             const bD = document.getElementById('birth-day').value;
             const bM = document.getElementById('birth-month').value;
             const bY = document.getElementById('birth-year').value;
-            
             if(!u || !r || !e || !p || !g) return alert("Fill all fields");
-            if(accounts.some(a => a.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken");
-            
-            accounts.push({ 
-                name: u, robloxName: r, pass: p, email: e, 
-                birthday: `${bD}-${bM}-${bY}`, gender: g, 
-                role: "user", status: "Active" 
-            });
-            db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
+            accounts.push({ name: u, robloxName: r, email: e, pass: p, birthday: `${bD}-${bM}-${bY}`, gender: g, role: "user", status: "Active" });
+            db.ref('accounts').set(accounts).then(() => showScreen('login-screen'));
         }
 
         function handleLogin() {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
             const f = accounts.find(a => a.name === u && a.pass === p);
-            if (f) {
-                currentUser = f;
-                localStorage.setItem('nls_session', JSON.stringify(f));
-                if(f.status === "Banned") showBanUI(f.banData?.reason || "Violation of rules.");
-                else showDashboard();
-            } else alert("Incorrect Login");
+            if (f) { currentUser = f; localStorage.setItem('nls_session', JSON.stringify(f)); showDashboard(); }
+            else alert("Invalid Login");
         }
+
+        function getRoleClass(role) { return (role || "user").replace(" ", "-") + "-bg"; }
 
         function showDashboard() {
             showScreen('dashboard');
-            const d = document.getElementById('user-display');
-            const container = document.getElementById('panel-container');
-            const actionBtn = document.getElementById('main-action-btn');
-            const role = currentUser.role || "user";
-            const colors = { owner: "owner-bg", "co-owner": "coowner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+            const role = (currentUser.role || "user").toLowerCase();
+            document.getElementById('user-display').innerHTML = `@${currentUser.name} <span class="role-badge ${getRoleClass(role)}">${role}</span>`;
             
-            d.innerHTML = `@${currentUser.name} <span class="role-badge ${colors[role]}">${role.toUpperCase()}</span>`;
-            
-            if (role === "developer") actionBtn.innerText = "Continue Developing";
-            else if (role === "tester") actionBtn.innerText = "Continue Testing NLS Games";
-            else actionBtn.innerText = "Visit NLS Studios Community";
+            const commBtn = document.getElementById('dynamic-community-btn');
+            if (role === "owner") commBtn.innerText = "Lets Use 100% Of Your Power!!";
+            else if (role === "co-owner") commBtn.innerText = "Lets Continue Your Power";
+            else if (role === "developer") commBtn.innerText = "Lets Continue Developing NLS Games";
+            else if (role === "admin") commBtn.innerText = "Lets Continue Your Adminship";
+            else if (role === "tester") commBtn.innerText = "Lets Test NLS Games!!!";
+            else commBtn.innerText = "Lets Play NLS Games!!!";
 
-            if (["owner", "co-owner", "admin", "developer", "tester"].includes(role)) {
-                container.style.display = "block";
-                document.querySelectorAll('.pass-col').forEach(el => el.style.display = (role === 'owner' || role === 'co-owner') ? 'table-cell' : 'none');
-                document.getElementById('panel-hint').innerText = `${role.toUpperCase()} VIEW`;
-            } else {
-                container.style.display = "none";
-            }
+            if (role !== "user") document.getElementById('panel-container').style.display = "block";
+            else document.getElementById('panel-container').style.display = "none";
+            
             renderTable();
         }
 
         function renderTable() {
-            const list = document.getElementById('user-list');
+            if (!currentUser || currentUser.role === "user") return;
+            const list = document.getElementById('user-list'); 
             list.innerHTML = "";
-            const colors = { owner: "owner-bg", "co-owner": "coowner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
+            const myPower = rankPower[currentUser.role] || 0;
+            const canSeePass = (myPower >= 80);
+
+            document.getElementById('pass-header').style.display = canSeePass ? "table-cell" : "none";
 
             accounts.forEach((acc, index) => {
-                const viewer = currentUser.role;
-                if (viewer === "co-owner" && acc.role === "owner") return;
+                const targetPower = rankPower[acc.role] || 0;
+                if (targetPower >= myPower) return;
 
-                let canSee = false;
-                if (viewer === "owner" || viewer === "co-owner") canSee = true;
-                else if (viewer === "developer" && ["admin", "tester", "user"].includes(acc.role)) canSee = true;
-                else if (viewer === "admin" && ["tester", "user"].includes(acc.role)) canSee = true;
-                else if (viewer === "tester" && acc.role === "user") canSee = true;
-
-                if (canSee && acc.name !== currentUser.name) {
-                    const row = document.createElement('tr');
-                    let clickable = (viewer === "owner" || viewer === "co-owner") ? "badge-clickable" : "";
-                    let content = `<td>${acc.name}</td>
-                        <td><span class="role-badge ${colors[acc.role]} ${clickable}" onclick="${(viewer === 'owner' || viewer === 'co-owner') ? `toggleRole(${index})` : ''}">${acc.role.toUpperCase()}</span></td>`;
-                    
-                    if (viewer === "owner" || viewer === "co-owner") content += `<td class="pass-col" style="color:#fbbf24">${acc.pass}</td>`;
-                    
-                    content += `<td style="color:${acc.status === 'Banned' ? '#ef4444' : '#4ade80'}">${acc.status}</td>
-                        <td class="action-cell">
-                            <button class="ban-btn" style="background:${acc.status === 'Banned' ? '#4ade80' : '#ef4444'}" onclick="${acc.status === 'Banned' ? `unbanUser(${index})` : `openBanModal(${index})`}">${acc.status === 'Banned' ? 'Unban' : 'Ban'}</button>`;
-                    
-                    if (viewer === "owner") content += `<button class="remove-btn" onclick="removeAccount(${index})">Remove</button>`;
-                    row.innerHTML = content + `</td>`;
-                    list.appendChild(row);
-                }
+                const row = document.createElement('tr');
+                let content = `<td>${acc.name}</td><td><span class="role-badge ${getRoleClass(acc.role)}" onclick="toggleRole(${index})">${acc.role}</span></td><td>${acc.gender || 'N/A'}</td>`;
+                if (canSeePass) content += `<td style="color:#fbbf24">${acc.pass}</td>`;
+                content += `<td style="color:${acc.status === 'Banned' ? '#ef4444' : '#4ade80'}">${acc.status}</td>`;
+                content += `<td><button class="ban-btn" style="background:${acc.status === 'Banned' ? '#4ade80' : '#ef4444'}" onclick="${acc.status === 'Banned' ? `unban(${index})` : `openBanModal(${index})`}">${acc.status === 'Banned' ? 'UNBAN' : 'BAN'}</button>`;
+                if (currentUser.role === "owner") content += `<button class="remove-btn" onclick="removeAcc(${index})">DEL</button>`;
+                row.innerHTML = content + `</td>`; 
+                list.appendChild(row);
             });
         }
 
-        function togglePanelVisibility() {
-            const panel = document.getElementById('staff-panel');
-            const btn = document.getElementById('toggle-panel-btn');
-            panel.style.display = panel.style.display === "none" ? "block" : "none";
-            btn.innerText = panel.style.display === "none" ? "View Staff Panel" : "Minimize Panel";
-        }
-
         function toggleRole(idx) {
-            const vR = currentUser.role;
-            let roles = (vR === "owner") ? ["user", "tester", "admin", "developer", "co-owner"] : ["user", "tester", "admin", "developer"];
+            const myPower = rankPower[currentUser.role] || 0;
+            const targetPower = rankPower[accounts[idx].role] || 0;
+            if (targetPower >= myPower) return;
+            const roles = ["user", "tester", "admin", "developer", "co-owner"];
             let cI = roles.indexOf(accounts[idx].role);
-            if (cI === -1) cI = 0; 
-            accounts[idx].role = roles[(cI + 1) % roles.length];
+            let nextRole = roles[(cI + 1) % roles.length];
+            if (rankPower[nextRole] >= myPower) accounts[idx].role = "user"; 
+            else accounts[idx].role = nextRole;
             db.ref('accounts').set(accounts);
         }
 
-        function openBanModal(idx) {
-            selectedUserIdx = idx;
-            document.getElementById('ban-target-name').innerText = "Banning: " + accounts[idx].name;
-            document.getElementById('ban-modal').style.display = "block";
-        }
-
+        function openBanModal(idx) { selectedUserIdx = idx; document.getElementById('ban-target-name').innerText = "Target: " + accounts[idx].name; document.getElementById('ban-modal').style.display = "block"; }
         function closeBanModal() { document.getElementById('ban-modal').style.display = "none"; }
-
-        function submitBan() {
-            accounts[selectedUserIdx].status = "Banned";
-            accounts[selectedUserIdx].banData = { reason: document.getElementById('ban-reason').value || "Violation of rules." };
-            db.ref('accounts').set(accounts).then(() => closeBanModal());
-        }
-
-        function unbanUser(idx) {
-            accounts[idx].status = "Active";
-            accounts[idx].banData = null;
-            db.ref('accounts').set(accounts);
-        }
-
-        function removeAccount(idx) {
-            if(confirm("Delete account permanently?")) {
-                accounts.splice(idx, 1);
-                db.ref('accounts').set(accounts);
-            }
-        }
-
-        function showBanUI(reason) {
-            showScreen('banned-screen');
-            document.getElementById('display-ban-reason').innerText = reason;
-        }
-
-        function handleLogout() {
-            localStorage.removeItem('nls_session');
-            location.reload();
-        }
-
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-            document.getElementById(id).classList.add('active-screen');
-        }
+        function submitBan() { accounts[selectedUserIdx].status = "Banned"; accounts[selectedUserIdx].banData = { reason: document.getElementById('ban-reason').value || "Violation" }; db.ref('accounts').set(accounts).then(() => closeBanModal()); }
+        function unban(idx) { accounts[idx].status = "Active"; db.ref('accounts').set(accounts); }
+        function removeAcc(idx) { if(confirm("Delete Account?")) { accounts.splice(idx, 1); db.ref('accounts').set(accounts); } }
+        function togglePanelVisibility() { const p = document.getElementById('staff-panel'); p.style.display = p.style.display === "none" ? "block" : "none"; }
+        function handleLogout() { localStorage.removeItem('nls_session'); location.reload(); }
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
     </script>
 </body>
 </html>
