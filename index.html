@@ -112,7 +112,7 @@
         .ban-btn { padding: 6px 10px; border-radius: 2px; border: none; cursor: pointer; font-size: 0.65rem; color: #fff; font-weight: bold; }
         .remove-btn { padding: 6px 10px; border-radius: 2px; border: 1px solid #333; cursor: pointer; font-size: 0.65rem; color: #666; background: transparent; margin-left: 5px; }
 
-        .community-btn { background: #fff; color: #000; margin-top: 30px; width: 100%; font-size: 0.85rem; border-radius: 4px; font-weight: bold; padding: 15px; cursor: pointer; border: none; text-transform: uppercase; }
+        .community-btn { background: #fff; color: #000; margin-top: 30px; width: 100%; font-size: 0.85rem; border-radius: 4px; font-weight: bold; padding: 15px; cursor: pointer; border: none; }
         .logout-btn { background: transparent; color: #444; margin-top: 20px; font-size: 0.75rem; cursor: pointer; border: none; text-decoration: underline; }
     </style>
 </head>
@@ -159,7 +159,7 @@
                 <option value="Boy">BOY</option>
                 <option value="Girl">GIRL</option>
             </select>
-            <button class="btn-primary" onclick="handleSignUp()">REGISTER</button>
+            <button class="btn-primary" onclick="handleSignUp()">SIGN UP</button>
             <button class="logout-btn" onclick="showScreen('login-screen')">BACK</button>
         </div>
 
@@ -226,7 +226,7 @@
         });
 
         function handleSignUp() {
-            const u = document.getElementById('reg-username').value;
+            const u = document.getElementById('reg-username').value.trim();
             const r = document.getElementById('reg-roblox').value;
             const e = document.getElementById('reg-email').value;
             const p = document.getElementById('reg-password').value;
@@ -234,9 +234,21 @@
             const bD = document.getElementById('birth-day').value;
             const bM = document.getElementById('birth-month').value;
             const bY = document.getElementById('birth-year').value;
+
             if(!u || !r || !e || !p || !g) return alert("Fill all fields");
+
+            // USERNAME TAKEN CHECK
+            const usernameExists = accounts.some(acc => acc.name.toLowerCase() === u.toLowerCase());
+            if(usernameExists) {
+                alert("Username Taken!");
+                return;
+            }
+
             accounts.push({ name: u, robloxName: r, email: e, pass: p, birthday: `${bD}-${bM}-${bY}`, gender: g, role: "user", status: "Active" });
-            db.ref('accounts').set(accounts).then(() => showScreen('login-screen'));
+            db.ref('accounts').set(accounts).then(() => {
+                alert("Account Created Successfully!");
+                showScreen('login-screen');
+            });
         }
 
         function handleLogin() {
