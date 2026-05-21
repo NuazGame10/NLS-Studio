@@ -94,7 +94,7 @@
         .dev-bg { background: #a855f7; color: #fff; }
         .admin-bg { background: #ec4899; color: #fff; }
         .tester-bg { background: #10b981; color: #fff; }
-        .user-bg { background: #333; color: #999; }
+        .member-bg { background: #333; color: #999; }
 
         #ban-modal { 
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
@@ -119,6 +119,18 @@
         
         .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 4px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
         .minimize-btn { background: #222; color: #fff; border: 1px solid #333; padding: 6px 12px; border-radius: 4px; font-size: 0.6rem; cursor: pointer; }
+
+        /* Search input specific style rules */
+        .panel-search-input {
+            max-width: 200px;
+            padding: 6px 10px;
+            margin-bottom: 0;
+            font-size: 0.75rem;
+            border: 1px solid #333;
+            background: #111;
+            border-radius: 4px;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -173,8 +185,9 @@
             <p id="user-display" style="margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8;"></p>
             
             <div id="panel-container" style="display:none;">
-                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap: 10px; flex-wrap: wrap;">
                     <p style="font-size: 0.6rem; color: #444;" id="panel-hint">STAFF VIEW</p>
+                    <input type="text" id="panel-search" class="panel-search-input" placeholder="SEARCH USER OR RANK..." oninput="renderTable()">
                     <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">MINIMIZE PANEL</button>
                 </div>
                 <div id="staff-panel">
@@ -219,7 +232,7 @@
         const db = firebase.database();
         let accounts = []; let currentUser = null; let selectedUserIdx = null;
 
-        const rankPower = { "owner": 100, "co-owner": 80, "developer": 60, "admin": 40, "tester": 20, "user": 0 };
+        const rankPower = { "owner": 100, "co-owner": 80, "developer": 60, "admin": 40, "tester": 20, "member": 0 };
 
         const dS = document.getElementById('birth-day'); const yS = document.getElementById('birth-year');
         for(let i=1; i<=31; i++) dS.innerHTML += `<option value="${i}">${i}</option>`;
@@ -233,6 +246,7 @@
                 const fresh = accounts.find(a => a.name === parsed.name);
                 if(fresh) {
                     currentUser = fresh;
+                    if(currentUser.role === "user") currentUser.role = "member";
                     if(fresh.status === "Banned") { showBanUI(fresh.banData?.reason || "Violation of rules."); }
                     else if (document.getElementById('login-screen').classList.contains('active-screen') || document.getElementById('banned-screen').classList.contains('active-screen')) showDashboard();
                 }
@@ -251,7 +265,7 @@
             const bY = document.getElementById('birth-year').value;
             if(!u || !r || !e || !p || !g) return alert("Fill all fields");
             if(accounts.some(acc => acc.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken!");
-            accounts.push({ name: u, robloxName: r, email: e, pass: p, birthday: `${bD}-${bM}-${bY}`, gender: g, role: "user", status: "Active" });
+            accounts.push({ name: u, robloxName: r, email: e, pass: p, birthday: `${bD}-${bM}-${bY}`, gender: g, role: "member", status: "Active" });
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
         }
 
@@ -261,7 +275,8 @@
             const f = accounts.find(a => a.name === u && a.pass === p);
             if (f) { 
                 currentUser = f; 
-                localStorage.setItem('nls_session', JSON.stringify(f)); 
+                if(currentUser.role === "user" || !currentUser.role) currentUser.role = "member";
+                localStorage.setItem('nls_session', JSON.stringify(currentUser)); 
                 if(f.status === "Banned") showBanUI(f.banData?.reason || "Violation of rules.");
                 else showDashboard(); 
             }
@@ -269,13 +284,14 @@
         }
 
         function getRoleClass(role) { 
-            const colors = { owner: "owner-bg", "co-owner": "coowner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", user: "user-bg" };
-            return colors[role] || "user-bg";
+            const colors = { owner: "owner-bg", "co-owner": "coowner-bg", developer: "dev-bg", admin: "admin-bg", tester: "tester-bg", member: "member-bg" };
+            return colors[role] || "member-bg";
         }
 
         function showDashboard() {
             showScreen('dashboard');
-            const role = (currentUser.role || "user").toLowerCase();
+            let role = (currentUser.role || "member").toLowerCase();
+            if(role === "user") role = "member";
             document.getElementById('user-display').innerHTML = `@${currentUser.name} <span class="role-badge ${getRoleClass(role)}">${role.toUpperCase()}</span>`;
             
             const commBtn = document.getElementById('main-action-btn');
@@ -286,7 +302,7 @@
             else if (role === "tester") commBtn.innerText = "Lets Test NLS Games!!!";
             else commBtn.innerText = "Lets Play NLS Games!!!";
 
-            if (role !== "user") {
+            if (role !== "member") {
                 document.getElementById('panel-container').style.display = "block";
                 document.getElementById('panel-hint').innerText = `${role.toUpperCase()} VIEW`;
             } else {
@@ -296,18 +312,27 @@
         }
 
         function renderTable() {
-            if (!currentUser || currentUser.role === "user") return;
+            if (!currentUser || currentUser.role === "member" || currentUser.role === "user") return;
             const list = document.getElementById('user-list'); 
             list.innerHTML = "";
             const myPower = rankPower[currentUser.role] || 0;
             const canSeePass = (myPower >= 80);
 
+            // Active structural live search evaluation parameter
+            const searchQuery = document.getElementById('panel-search').value.toLowerCase();
+
             document.getElementById('pass-header').style.display = canSeePass ? "table-cell" : "none";
 
             accounts.forEach((acc, index) => {
+                if(acc.role === "user" || !acc.role) acc.role = "member";
                 const targetPower = rankPower[acc.role] || 0;
                 if (targetPower >= myPower && acc.name !== currentUser.name) return;
                 if (acc.name === currentUser.name) return;
+
+                // Match parameters against user search strings
+                const matchesUsername = acc.name.toLowerCase().includes(searchQuery);
+                const matchesRank = acc.role.toLowerCase().includes(searchQuery);
+                if (!matchesUsername && !matchesRank) return;
 
                 const row = document.createElement('tr');
                 let clickable = (myPower >= 80) ? "badge-clickable" : "";
@@ -323,8 +348,9 @@
 
         function toggleRole(idx) {
             const myPower = rankPower[currentUser.role] || 0;
-            let roles = (currentUser.role === "owner") ? ["user", "tester", "admin", "developer", "co-owner"] : ["user", "tester", "admin", "developer"];
+            let roles = (currentUser.role === "owner") ? ["member", "tester", "admin", "developer", "co-owner"] : ["member", "tester", "admin", "developer"];
             let cI = roles.indexOf(accounts[idx].role);
+            if(cI === -1) cI = 0;
             accounts[idx].role = roles[(cI + 1) % roles.length];
             db.ref('accounts').set(accounts);
         }
