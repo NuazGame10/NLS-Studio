@@ -240,7 +240,7 @@
         .roblox-svg-icon {
             width: 100%;
             height: 100%;
-            fill: #ff3344; /* Iconic Roblox Red */
+            fill: #ff3344;
             filter: drop-shadow(0 0 8px rgba(255, 51, 68, 0.6));
             transition: transform 0.2s;
         }
@@ -275,7 +275,7 @@
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94);
             pointer-events: none;
-            padding: 20px;
+            padding: 15px; /* Fixed: Reduced outer bounding space on mobile */
         }
         .android-app-layer.app-active {
             transform: translateY(0);
@@ -284,13 +284,13 @@
 
         .small-exit-btn {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 12px;
+            right: 12px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: #94a3b8;
-            padding: 6px 14px;
-            font-size: 0.7rem;
+            padding: 5px 12px;
+            font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -308,7 +308,7 @@
 
         .android-app-content {
             flex: 1;
-            padding-top: 30px;
+            padding-top: 25px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -316,28 +316,50 @@
 
         #panel-container { display: flex; flex-direction: column; height: 100%; }
         
+        /* FIXED: Compressed layout controls, fonts, and cell paddings inside the Admin environment to keep rows tight */
         #staff-panel { 
             background: #050505; 
-            border: 1px solid #222; 
+            border: 1px solid #1a1a1a; 
             width: 100%;
             flex: 1;
             overflow-y: auto;
             overflow-x: auto; 
             border-radius: 4px;
+            -webkit-overflow-scrolling: touch;
         }
-        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 700px; }
-        th { color: #444; font-size: 0.6rem; padding: 12px 10px; border-bottom: 1px solid #222; text-transform: uppercase; position: sticky; top: 0; background: #050505; z-index: 5; }
-        td { padding: 12px 10px; border-bottom: 1px solid #111; font-size: 0.75rem; white-space: nowrap; color: #f8fafc; }
+        table { width: 100%; border-collapse: collapse; text-align: left; table-layout: auto; }
+        th { 
+            color: #555; 
+            font-size: 0.65rem; 
+            padding: 8px 10px; 
+            border-bottom: 1px solid #1c1c1e; 
+            text-transform: uppercase; 
+            position: sticky; 
+            top: 0; 
+            background: #050505; 
+            z-index: 5; 
+            letter-spacing: 1px;
+        }
+        td { 
+            padding: 10px 10px; 
+            border-bottom: 1px solid #111; 
+            font-size: 0.75rem; 
+            white-space: nowrap; 
+            color: #f8fafc; 
+            vertical-align: middle;
+            line-height: 1.4;
+        }
         
-        .ban-btn { padding: 6px 10px; border-radius: 2px; border: none; cursor: pointer; font-size: 0.65rem; color: #fff; font-weight: bold; }
-        .remove-btn { padding: 6px 10px; border-radius: 2px; border: 1px solid #333; cursor: pointer; font-size: 0.65rem; color: #666; background: transparent; margin-left: 5px; }
+        /* Fixed: Made input fields tighter in panel view */
+        .panel-search-input { width: 100%; padding: 8px 12px; margin-bottom: 10px; font-size: 0.75rem; border: 1px solid #222; background: #0d0d0d; border-radius: 4px; color: #fff; }
+
+        .ban-btn { padding: 4px 8px; border-radius: 2px; border: none; cursor: pointer; font-size: 0.6rem; color: #fff; font-weight: bold; text-transform: uppercase; }
+        .remove-btn { padding: 4px 8px; border-radius: 2px; border: 1px solid #333; cursor: pointer; font-size: 0.6rem; color: #ef4444; background: transparent; margin-left: 4px; font-weight: bold; }
 
         .logout-btn { background: transparent; color: #444; margin-top: 15px; font-size: 0.75rem; cursor: pointer; border: none; text-decoration: underline; flex-shrink: 0; align-self: center; }
         
         .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 4px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
-        .minimize-btn { background: #222; color: #fff; border: 1px solid #333; padding: 6px 12px; border-radius: 4px; font-size: 0.6rem; cursor: pointer; }
-
-        .panel-search-input { width: 100%; padding: 10px; margin-bottom: 12px; font-size: 0.75rem; border: 1px solid #333; background: #111; border-radius: 4px; color: #fff; }
+        .minimize-btn { background: #111; color: #888; border: 1px solid #222; padding: 4px 10px; border-radius: 4px; font-size: 0.6rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .app-window-frame {
             flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px 20px; border: 1px solid #1c1c1e; border-radius: 6px; background: #040405; text-align: center;
@@ -457,11 +479,11 @@
         <button class="small-exit-btn" onclick="closeAndroidApp('admin')">Exit</button>
         <div class="android-app-content">
             <div id="panel-container">
-                <h3 id="panel-hint" style="font-size: 1rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px;">STAFF VIEW</h3>
-                <input type="text" id="panel-search" class="panel-search-input" placeholder="SEARCH USER OR RANK..." oninput="renderTable()">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <p style="font-size: 0.6rem; color: #444; font-weight: bold;">REGISTRY DATABASE SYSTEM</p>
-                    <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">MINIMIZE PANEL</button>
+                <h3 id="panel-hint" style="font-size: 0.95rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px;">OWNER ENVIRONMENT</h3>
+                <input type="text" id="panel-search" class="panel-search-input" placeholder="Search accounts..." oninput="renderTable()">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <p style="font-size: 0.55rem; color: #444; font-weight: bold; letter-spacing: 0.5px;">REGISTRY DATABASE SYSTEM</p>
+                    <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">MINIMIZE LIST</button>
                 </div>
                 <div id="staff-panel">
                     <table>
@@ -611,7 +633,7 @@
                 }
             } else {
                 if(adminBtn) adminBtn.style.display = "flex";
-                if(panelHintEl) panelHintEl.innerText = `${role.toUpperCase()} VIEW`;
+                if(panelHintEl) panelHintEl.innerText = `${role.toUpperCase()} ENVIRONMENT`;
 
                 if(storeContent) {
                     storeContent.innerHTML = `
@@ -718,10 +740,10 @@
             if(!p || !btn) return;
             if (p.style.display === "none") {
                 p.style.display = "block";
-                btn.innerText = "MINIMIZE PANEL";
+                btn.innerText = "MINIMIZE LIST";
             } else {
                 p.style.display = "none";
-                btn.innerText = "VIEW STAFF PANEL";
+                btn.innerText = "VIEW LIST";
             }
         }
 
