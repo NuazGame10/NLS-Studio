@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NLS Studio | Portal</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -12,15 +12,22 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         
         body { 
-            min-height: 100vh; 
+            height: 100vh;
+            height: -webkit-fill-available;
             display: flex; 
             justify-content: center; 
             align-items: center; 
             background: #000; 
             color: #f8fafc; 
-            padding: 20px;
-            overflow-x: hidden; 
+            padding: 15px;
+            overflow: hidden; 
             position: relative;
+        }
+
+        html {
+            height: 100vh;
+            height: -webkit-fill-available;
+            overflow: hidden;
         }
 
         /* Background Glow & Grid */
@@ -52,42 +59,61 @@
 
         @keyframes moveGrid { 0% { transform: translate(0, 0); } 100% { transform: translate(-50px, -50px); } }
 
+        /* Main Container Card */
         .container { 
             background: rgba(10, 10, 10, 0.96); 
-            padding: 30px 20px; 
+            padding: 35px 25px 25px 25px; 
             border-radius: 4px; 
             box-shadow: 0 0 50px #000, 0 0 20px rgba(168, 85, 247, 0.2); 
             width: 100%; 
-            max-width: 900px; 
-            border: 1px solid #333; 
+            max-width: 400px; 
+            height: auto;
+            min-height: min-content;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(51, 51, 51, 0.8); 
             text-align: center; 
             position: relative; 
             backdrop-filter: blur(20px);
             z-index: 10;
+            transition: max-height 0.3s ease, height 0.3s ease;
         }
 
-        h2 { font-weight: 700; letter-spacing: 4px; margin-bottom: 30px; text-transform: uppercase; color: #fff; text-shadow: 0 0 15px rgba(168, 85, 247, 0.6); font-size: 1.5rem; }
+        .container.dashboard-active {
+            height: 90vh;
+            max-height: 660px;
+        }
+
+        h2 { font-weight: 700; letter-spacing: 4px; margin-bottom: 25px; text-transform: uppercase; color: #fff; text-shadow: 0 0 15px rgba(168, 85, 247, 0.6); font-size: 1.4rem; flex-shrink: 0; }
         
         input, select, textarea { 
-            width: 100%; padding: 14px; border-radius: 4px; border: 1px solid #333; 
-            background: #111; color: #fff; margin-bottom: 15px; outline: none; font-size: 14px; 
+            width: 100%; padding: 14px 12px; border-radius: 4px; border: 1px solid #222; 
+            background: #0d0d0d; color: #fff; margin-bottom: 14px; outline: none; font-size: 14px; 
         }
+        input:focus { border-color: #555; }
 
         .btn-primary { 
-            width: 100%; padding: 14px; border: none; border-radius: 4px; 
+            width: 100%; padding: 15px; border: none; border-radius: 4px; 
             background: linear-gradient(90deg, #a855f7, #7e22ce); color: white; 
             font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 2px;
+            flex-shrink: 0; font-size: 13px;
         }
 
-        .btn-secondary { background: transparent; color: #666; border: 1px solid #222; margin-top: 10px; width: 100%; padding: 12px; border-radius: 4px; cursor: pointer; }
-
-        .birthday-row { display: flex; gap: 5px; margin-bottom: 15px; }
+        .btn-secondary { background: transparent; color: #444; border: 1px solid #161616; margin-top: 12px; width: 100%; padding: 14px; border-radius: 4px; cursor: pointer; flex-shrink: 0; font-size: 12px; font-weight: 500; letter-spacing: 1px; }
+        
+        .birthday-row { display: flex; gap: 5px; margin-bottom: 14px; flex-shrink: 0; }
         .birthday-row select { margin-bottom: 0; flex: 1; font-size: 12px; }
 
-        .screen { display: none; width: 100%; }
-        .active-screen { display: block; animation: fadeIn 0.4s ease; }
+        .screen { display: none; width: 100%; height: 100%; }
+        .screen.active-screen { display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-        .role-badge { padding: 4px 10px; border-radius: 2px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; display: inline-block; white-space: nowrap; }
+        #login-screen.active-screen, #signup-screen.active-screen {
+            overflow-y: auto;
+            height: auto;
+        }
+
+        /* Badges Architecture */
+        .role-badge { padding: 4px 10px; border-radius: 2px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; display: inline-block; white-space: nowrap; margin-top: 4px; }
         .badge-clickable { cursor: pointer; }
         .owner-bg { background: #38bdf8; color: #000; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
         .coowner-bg { background: transparent; color: #38bdf8; border: 1px solid #38bdf8; }
@@ -99,38 +125,226 @@
         #ban-modal { 
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             background: #000; padding: 30px; border-radius: 4px; border: 1px solid #ef4444; 
-            width: 90%; max-width: 400px; z-index: 2000; box-shadow: 0 0 100px #000; 
+            width: 90%; max-width: 400px; z-index: 1000005; box-shadow: 0 0 100px #000; 
         }
 
+        /* System Info Header */
+        .os-header-decor {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            border-bottom: 1px dashed rgba(168, 85, 247, 0.2);
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 0.6rem;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        .sys-pulse { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; display: inline-block; margin-right: 4px; box-shadow: 0 0 8px #4ade80; }
+
+        /* User Profile Container */
+        .user-profile-header {
+            text-align: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, rgba(20, 20, 25, 0.4) 0%, transparent 100%);
+            padding: 15px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+        
+        .welcome-title-decor {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 3px;
+            color: #a855f7;
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+            margin-bottom: 4px;
+        }
+        .profile-name { font-size: 1.2rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+
+        /* App Launcher Matrix Setup */
+        .launcher-workspace {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            justify-content: space-between;
+        }
+
+        .app-grid-layout {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            flex: 1;
+            align-content: center;
+        }
+
+        .app-item-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            text-decoration: none;
+        }
+
+        .app-bubble {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, #121214, #08080a);
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 8px;
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.05), 0 8px 16px rgba(0,0,0,0.6);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .app-item-icon:active .app-bubble {
+            transform: scale(0.92);
+            border-color: #a855f7;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+        }
+
+        .app-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            width: 4px;
+            height: 4px;
+            background: rgba(168, 85, 247, 0.5);
+            border-radius: 50%;
+        }
+
+        /* Dynamic sizing box to keep the Red Roblox logo crisp and un-stretched */
+        .roblox-svg-wrapper {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .roblox-svg-icon {
+            width: 100%;
+            height: 100%;
+            fill: #ff3344; /* Iconic Roblox Red */
+            filter: drop-shadow(0 0 8px rgba(255, 51, 68, 0.6));
+            transition: transform 0.2s;
+        }
+        .app-item-icon:hover .roblox-svg-icon {
+            transform: scale(1.08);
+        }
+
+        .app-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-align: center;
+            width: 110px;
+            word-wrap: break-word;
+            white-space: normal;
+            line-height: 1.2;
+            letter-spacing: 0.5px;
+        }
+
+        /* Full Screen Takeover Configuration Layers */
+        .android-app-layer {
+            position: fixed;
+            top: 0; 
+            left: 0;
+            width: 100vw; 
+            height: 100vh;
+            background: #0a0a0c;
+            display: flex;
+            flex-direction: column;
+            z-index: 99999;
+            text-align: left;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94);
+            pointer-events: none;
+            padding: 20px;
+        }
+        .android-app-layer.app-active {
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .small-exit-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8;
+            padding: 6px 14px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 100000;
+            transition: all 0.2s;
+        }
+        .small-exit-btn:hover {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+
+        .android-app-content {
+            flex: 1;
+            padding-top: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #panel-container { display: flex; flex-direction: column; height: 100%; }
+        
         #staff-panel { 
-            background: #050505; margin-top: 20px; border: 1px solid #222; width: 100%;
-            display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 4px;
+            background: #050505; 
+            border: 1px solid #222; 
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto; 
+            border-radius: 4px;
         }
-
         table { width: 100%; border-collapse: collapse; text-align: left; min-width: 700px; }
-        th { color: #444; font-size: 0.6rem; padding: 12px 10px; border-bottom: 1px solid #222; text-transform: uppercase; }
-        td { padding: 12px 10px; border-bottom: 1px solid #111; font-size: 0.75rem; white-space: nowrap; }
+        th { color: #444; font-size: 0.6rem; padding: 12px 10px; border-bottom: 1px solid #222; text-transform: uppercase; position: sticky; top: 0; background: #050505; z-index: 5; }
+        td { padding: 12px 10px; border-bottom: 1px solid #111; font-size: 0.75rem; white-space: nowrap; color: #f8fafc; }
         
         .ban-btn { padding: 6px 10px; border-radius: 2px; border: none; cursor: pointer; font-size: 0.65rem; color: #fff; font-weight: bold; }
         .remove-btn { padding: 6px 10px; border-radius: 2px; border: 1px solid #333; cursor: pointer; font-size: 0.65rem; color: #666; background: transparent; margin-left: 5px; }
 
-        .community-btn { background: #fff; color: #000; margin-top: 30px; width: 100%; font-size: 0.85rem; border-radius: 4px; font-weight: bold; padding: 15px; cursor: pointer; border: none; text-transform: uppercase; }
-        .logout-btn { background: transparent; color: #444; margin-top: 20px; font-size: 0.75rem; cursor: pointer; border: none; text-decoration: underline; }
+        .logout-btn { background: transparent; color: #444; margin-top: 15px; font-size: 0.75rem; cursor: pointer; border: none; text-decoration: underline; flex-shrink: 0; align-self: center; }
         
         .ban-box { background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 4px; border-left: 4px solid #ef4444; text-align: left; margin: 20px 0; }
         .minimize-btn { background: #222; color: #fff; border: 1px solid #333; padding: 6px 12px; border-radius: 4px; font-size: 0.6rem; cursor: pointer; }
 
-        /* Search input specific style rules */
-        .panel-search-input {
-            max-width: 200px;
-            padding: 6px 10px;
-            margin-bottom: 0;
-            font-size: 0.75rem;
-            border: 1px solid #333;
-            background: #111;
-            border-radius: 4px;
-            color: #fff;
+        .panel-search-input { width: 100%; padding: 10px; margin-bottom: 12px; font-size: 0.75rem; border: 1px solid #333; background: #111; border-radius: 4px; color: #fff; }
+
+        .app-window-frame {
+            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px 20px; border: 1px solid #1c1c1e; border-radius: 6px; background: #040405; text-align: center;
         }
+        .app-main-logo { font-size: 2.2rem; margin-bottom: 12px; line-height: 1; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -138,15 +352,15 @@
     <div class="bg-animation"></div>
     <div id="cursor-glow"></div>
 
-    <div class="container">
-        <div id="ban-modal">
-            <h3 style="color: #ef4444; margin-bottom: 15px; letter-spacing: 2px;">MODERATE ACCOUNT</h3>
-            <p id="ban-target-name" style="margin-bottom: 10px; font-size: 0.8rem; color: #94a3b8;"></p>
-            <textarea id="ban-reason" placeholder="Type reason for ban..."></textarea>
-            <button class="btn-primary" style="background: #ef4444;" onclick="submitBan()">CONFIRM BAN</button>
-            <button class="logout-btn" onclick="closeBanModal()">CANCEL</button>
-        </div>
+    <div id="ban-modal">
+        <h3 style="color: #ef4444; margin-bottom: 15px; letter-spacing: 2px;">MODERATE ACCOUNT</h3>
+        <p id="ban-target-name" style="margin-bottom: 10px; font-size: 0.8rem; color: #94a3b8;"></p>
+        <textarea id="ban-reason" placeholder="Type reason for ban..."></textarea>
+        <button class="btn-primary" style="background: #ef4444;" onclick="submitBan()">CONFIRM BAN</button>
+        <button class="logout-btn" onclick="closeBanModal()">CANCEL</button>
+    </div>
 
+    <div id="main-card-frame" class="container">
         <div id="login-screen" class="screen active-screen">
             <h2>NLS STUDIO</h2>
             <input type="text" id="login-username" placeholder="USERNAME">
@@ -181,13 +395,72 @@
         </div>
 
         <div id="dashboard" class="screen">
-            <h2 id="welcome-msg">WELCOME</h2>
-            <p id="user-display" style="margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8;"></p>
-            
-            <div id="panel-container" style="display:none;">
-                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap: 10px; flex-wrap: wrap;">
-                    <p style="font-size: 0.6rem; color: #444;" id="panel-hint">STAFF VIEW</p>
-                    <input type="text" id="panel-search" class="panel-search-input" placeholder="SEARCH USER OR RANK..." oninput="renderTable()">
+            <div class="launcher-workspace">
+                
+                <div class="os-header-decor">
+                    <div><span class="sys-pulse"></span>SECURE SYSTEM INF</div>
+                    <div>SECURE LINK</div>
+                </div>
+                
+                <div class="user-profile-header">
+                    <div class="welcome-title-decor">Welcome To NLS Studio</div>
+                    <div id="user-display" class="profile-name"></div>
+                    <div id="user-badge-slot"></div>
+                </div>
+                
+                <div class="app-grid-layout">
+                    <button class="app-item-icon" id="choice-admin" onclick="launchAndroidApp('admin')">
+                        <div class="app-bubble">🛡️</div>
+                        <div class="app-label">Admin Panel</div>
+                    </button>
+                    
+                    <button class="app-item-icon" id="choice-settings" onclick="launchAndroidApp('settings')">
+                        <div class="app-bubble">⚙️</div>
+                        <div class="app-label">Settings</div>
+                    </button>
+
+                    <button class="app-item-icon" id="choice-store" onclick="launchAndroidApp('store')">
+                        <div class="app-bubble" style="border-color: rgba(168, 85, 247, 0.4); text-shadow: 0 0 10px #a855f7;">⚡</div>
+                        <div class="app-label">NLS Store</div>
+                    </button>
+
+                    <a href="https://www.roblox.com/communities/34495526/NLS-Studios#!/about" target="_blank" class="app-item-icon" id="choice-roblox">
+                        <div class="app-bubble" style="border-color: rgba(255, 51, 68, 0.25);">
+                            <div class="roblox-svg-wrapper">
+                                <svg class="roblox-svg-icon" viewBox="0 0 32 32" preserveAspectRatio="xMidYMid meet">
+                                    <path d="M22.75 3.5H4.25v25h6.35v-8.8h6.2l4.8 8.8h6.95l-5.65-9.85c3.25-1.2 5.05-3.65 5.05-7.55 0-4.85-2.55-7.6-5.2-7.6zm-12.15 10.9v-5.6h11c1.9 0 2.95.85 2.95 2.8 0 1.9-1.05 2.8-2.95 2.8h-11z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="roblox-app-text" class="app-label">Lets Play NLS Games!!!</div>
+                    </a>
+                </div>
+
+                <div style="width: 100%; display: flex; justify-content: center; flex-shrink: 0;">
+                    <button class="logout-btn" onclick="handleLogout()">LOG OUT</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="banned-screen" class="screen">
+            <h1 style="color: #ef4444; letter-spacing: 5px;">🚫 BANNED</h1>
+            <p style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Your account has been permanently banned by NLS Studio Staff.</p>
+            <div class="ban-box">
+                <p style="color: #fff;"><strong>Reason:</strong> <span id="display-ban-reason" style="color: #ef4444;"></span></p>
+            </div>
+            <button class="btn-primary" onclick="handleLogout()">LOG OUT</button>
+        </div>
+    </div>
+
+
+    <div id="android-app-admin" class="android-app-layer">
+        <button class="small-exit-btn" onclick="closeAndroidApp('admin')">Exit</button>
+        <div class="android-app-content">
+            <div id="panel-container">
+                <h3 id="panel-hint" style="font-size: 1rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px;">STAFF VIEW</h3>
+                <input type="text" id="panel-search" class="panel-search-input" placeholder="SEARCH USER OR RANK..." oninput="renderTable()">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <p style="font-size: 0.6rem; color: #444; font-weight: bold;">REGISTRY DATABASE SYSTEM</p>
                     <button class="minimize-btn" id="toggle-panel-btn" onclick="togglePanelVisibility()">MINIMIZE PANEL</button>
                 </div>
                 <div id="staff-panel">
@@ -201,22 +474,25 @@
                     </table>
                 </div>
             </div>
-            <button id="main-action-btn" class="community-btn" onclick="window.location.href='https://www.roblox.com/communities/34495526/NLS-Studios#!/about'">NLS COMMUNITY</button>
-            <button class="logout-btn" onclick="handleLogout()">LOG OUT</button>
-        </div>
-
-        <div id="banned-screen" class="screen">
-            <h1 style="color: #ef4444; letter-spacing: 5px;">🚫 BANNED</h1>
-            <p style="margin-top: 10px; font-weight: bold; color: #94a3b8;">Your account has been permanently banned by NLS Studio Staff.</p>
-            <div class="ban-box">
-                <p style="color: #fff;"><strong>Reason:</strong> <span id="display-ban-reason" style="color: #ef4444;"></span></p>
-            </div>
-            <button class="btn-primary" onclick="handleLogout()">LOG OUT</button>
         </div>
     </div>
 
+    <div id="android-app-settings" class="android-app-layer">
+        <button class="small-exit-btn" onclick="closeAndroidApp('settings')">Exit</button>
+        <div class="android-app-content">
+            <div id="settings-content" style="display: flex; flex-direction: column; height: 100%;"></div>
+        </div>
+    </div>
+
+    <div id="android-app-store" class="android-app-layer">
+        <button class="small-exit-btn" onclick="closeAndroidApp('store')">Exit</button>
+        <div class="android-app-content">
+            <div id="store-content" style="display: flex; flex-direction: column; height: 100%;"></div>
+        </div>
+    </div>
+
+
     <script>
-        // Cursor Glow Effect
         const glow = document.getElementById('cursor-glow');
         const updateGlow = (e) => {
             glow.style.opacity = "1";
@@ -292,36 +568,103 @@
             showScreen('dashboard');
             let role = (currentUser.role || "member").toLowerCase();
             if(role === "user") role = "member";
-            document.getElementById('user-display').innerHTML = `@${currentUser.name} <span class="role-badge ${getRoleClass(role)}">${role.toUpperCase()}</span>`;
             
-            const commBtn = document.getElementById('main-action-btn');
-            if (role === "owner") commBtn.innerText = "Lets Use 100% Of Your Power!!";
-            else if (role === "co-owner") commBtn.innerText = "Lets Continue Your Power";
-            else if (role === "developer") commBtn.innerText = "Lets Continue Developing NLS Games";
-            else if (role === "admin") commBtn.innerText = "Lets Continue Your Adminship";
-            else if (role === "tester") commBtn.innerText = "Lets Test NLS Games!!!";
-            else commBtn.innerText = "Lets Play NLS Games!!!";
-
-            if (role !== "member") {
-                document.getElementById('panel-container').style.display = "block";
-                document.getElementById('panel-hint').innerText = `${role.toUpperCase()} VIEW`;
-            } else {
-                document.getElementById('panel-container').style.display = "none";
+            const displayEl = document.getElementById('user-display');
+            const badgeEl = document.getElementById('user-badge-slot');
+            if(displayEl) displayEl.innerText = `@${currentUser.name}`;
+            if(badgeEl) badgeEl.innerHTML = `<span class="role-badge ${getRoleClass(role)}">${role.toUpperCase()}</span>`;
+            
+            const robloxTextEl = document.getElementById('roblox-app-text');
+            if (robloxTextEl) {
+                if (role === "owner") robloxTextEl.innerText = "Lets Use 100% Of Your Power!!";
+                else if (role === "co-owner") robloxTextEl.innerText = "Lets Continue Your Power";
+                else if (role === "developer") robloxTextEl.innerText = "Lets Continue Developing NLS Games";
+                else if (role === "admin") robloxTextEl.innerText = "Lets Continue Your Adminship";
+                else if (role === "tester") robloxTextEl.innerText = "Lets Test NLS Games!!!";
+                else robloxTextEl.innerText = "Lets Play NLS Games!!!";
             }
+
+            const adminBtn = document.getElementById('choice-admin');
+            const storeContent = document.getElementById('store-content');
+            const settingsContent = document.getElementById('settings-content');
+            const panelHintEl = document.getElementById('panel-hint');
+
+            if (role === "member") {
+                if(adminBtn) adminBtn.style.display = "none";
+
+                if(storeContent) {
+                    storeContent.innerHTML = `
+                        <div class="app-window-frame" style="border-color: rgba(239, 68, 68, 0.2); height: 100%;">
+                            <div class="app-main-logo">🚫</div>
+                            <p style="color: #ef4444; font-weight: bold; margin-bottom: 5px; font-size: 0.8rem;">UNDER DEVELOPMENT</p>
+                            <p style="color: #666; font-size: 0.75rem;">Closed during engineering revisions.</p>
+                        </div>`;
+                }
+
+                if(settingsContent) {
+                    settingsContent.innerHTML = `
+                        <div class="app-window-frame" style="border-color: rgba(239, 68, 68, 0.2); height: 100%;">
+                            <div class="app-main-logo">🚫</div>
+                            <p style="color: #ef4444; font-weight: bold; margin-bottom: 5px; font-size: 0.8rem;">UNDER DEVELOPMENT</p>
+                            <p style="color: #666; font-size: 0.75rem;">Portal core registries are locked.</p>
+                        </div>`;
+                }
+            } else {
+                if(adminBtn) adminBtn.style.display = "flex";
+                if(panelHintEl) panelHintEl.innerText = `${role.toUpperCase()} VIEW`;
+
+                if(storeContent) {
+                    storeContent.innerHTML = `
+                        <div class="app-window-frame" style="border-color: rgba(168, 85, 247, 0.2); height: 100%;">
+                            <div class="app-main-logo">⚡</div>
+                            <p style="color: #a855f7; font-weight: bold; margin-bottom: 5px; font-size: 0.8rem;">NLS STORE DISTRIBUTION</p>
+                            <p style="color: #94a3b8; font-size: 0.75rem;">Browse and distribute assets.</p>
+                        </div>`;
+                }
+
+                if(settingsContent) {
+                    settingsContent.innerHTML = `
+                        <div class="app-window-frame" style="height: 100%;">
+                            <div class="app-main-logo" style="color: #52525b;">⚙️</div>
+                            <p style="color: #fff; font-weight: bold; margin-bottom: 5px; font-size: 0.8rem;">ENVIRONMENT CONFIG</p>
+                            <p style="color: #666; font-size: 0.75rem; margin-bottom: 10px;">Review memory profiles and system status.</p>
+                            <p style="font-size: 0.7rem; color: #444; font-family: monospace;">v2026.1.0-STABLE</p>
+                        </div>`;
+                }
+            }
+
+            document.querySelectorAll('.android-app-layer').forEach(win => win.classList.remove('app-active'));
             renderTable();
+        }
+
+        function launchAndroidApp(appId) {
+            let role = (currentUser.role || "member").toLowerCase();
+            if(role === "user") role = "member";
+            if (appId === 'admin' && role === 'member') return;
+
+            const targetApp = document.getElementById(`android-app-${appId}`);
+            if(targetApp) targetApp.classList.add('app-active');
+        }
+
+        function closeAndroidApp(appId) {
+            const targetApp = document.getElementById(`android-app-${appId}`);
+            if(targetApp) targetApp.classList.remove('app-active');
         }
 
         function renderTable() {
             if (!currentUser || currentUser.role === "member" || currentUser.role === "user") return;
             const list = document.getElementById('user-list'); 
+            if (!list) return;
+            
             list.innerHTML = "";
             const myPower = rankPower[currentUser.role] || 0;
             const canSeePass = (myPower >= 80);
 
-            // Active structural live search evaluation parameter
-            const searchQuery = document.getElementById('panel-search').value.toLowerCase();
+            const searchInput = document.getElementById('panel-search');
+            const searchQuery = searchInput ? searchInput.value.toLowerCase() : "";
 
-            document.getElementById('pass-header').style.display = canSeePass ? "table-cell" : "none";
+            const passHeader = document.getElementById('pass-header');
+            if(passHeader) passHeader.style.display = canSeePass ? "table-cell" : "none";
 
             accounts.forEach((acc, index) => {
                 if(acc.role === "user" || !acc.role) acc.role = "member";
@@ -329,7 +672,6 @@
                 if (targetPower >= myPower && acc.name !== currentUser.name) return;
                 if (acc.name === currentUser.name) return;
 
-                // Match parameters against user search strings
                 const matchesUsername = acc.name.toLowerCase().includes(searchQuery);
                 const matchesRank = acc.role.toLowerCase().includes(searchQuery);
                 if (!matchesUsername && !matchesRank) return;
@@ -355,7 +697,12 @@
             db.ref('accounts').set(accounts);
         }
 
-        function openBanModal(idx) { selectedUserIdx = idx; document.getElementById('ban-target-name').innerText = "BANNING: " + accounts[idx].name; document.getElementById('ban-modal').style.display = "block"; }
+        function openBanModal(idx) { 
+            selectedUserIdx = idx; 
+            document.getElementById('ban-target-name').innerText = "BANNING: " + accounts[idx].name; 
+            document.getElementById('ban-reason').value = ""; 
+            document.getElementById('ban-modal').style.display = "block"; 
+        }
         function closeBanModal() { document.getElementById('ban-modal').style.display = "none"; }
         function submitBan() { 
             accounts[selectedUserIdx].status = "Banned"; 
@@ -368,13 +715,38 @@
         function togglePanelVisibility() {
             const p = document.getElementById('staff-panel');
             const btn = document.getElementById('toggle-panel-btn');
-            p.style.display = p.style.display === "none" ? "block" : "none";
-            btn.innerText = p.style.display === "none" ? "VIEW STAFF PANEL" : "MINIMIZE PANEL";
+            if(!p || !btn) return;
+            if (p.style.display === "none") {
+                p.style.display = "block";
+                btn.innerText = "MINIMIZE PANEL";
+            } else {
+                p.style.display = "none";
+                btn.innerText = "VIEW STAFF PANEL";
+            }
         }
 
-        function showBanUI(reason) { showScreen('banned-screen'); document.getElementById('display-ban-reason').innerText = reason; }
+        function showBanUI(reason) { 
+            const frame = document.getElementById('main-card-frame');
+            if(frame) frame.classList.remove('dashboard-active');
+            showScreen('banned-screen'); 
+            const reasonEl = document.getElementById('display-ban-reason');
+            if(reasonEl) reasonEl.innerText = reason; 
+        }
         function handleLogout() { localStorage.removeItem('nls_session'); location.reload(); }
-        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
+        
+        function showScreen(id) { 
+            const frame = document.getElementById('main-card-frame');
+            if (frame) {
+                if (id === 'dashboard') {
+                    frame.classList.add('dashboard-active');
+                } else {
+                    frame.classList.remove('dashboard-active');
+                }
+            }
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen')); 
+            const targetScreen = document.getElementById(id);
+            if(targetScreen) targetScreen.classList.add('active-screen'); 
+        }
     </script>
 </body>
 </html>
