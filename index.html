@@ -754,6 +754,9 @@
         }
 
         function showBanUI(reason) { 
+            // FIX: Instantly close any open slide-up Android app windows 
+            document.querySelectorAll('.android-app-layer').forEach(win => win.classList.remove('app-active'));
+            
             const frame = document.getElementById('main-card-frame');
             if(frame) frame.classList.remove('dashboard-active');
             showScreen('banned-screen'); 
