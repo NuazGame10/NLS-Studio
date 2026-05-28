@@ -609,7 +609,7 @@
             background: #a855f7;
         }
 
-        .play-detail-desc-container { padding: 15px 2px 0 2px; min-height: 120px; display: flex; flex-direction: column; }
+        .play-detail-desc-container { padding: 15px 2px 0 2px; min-height: 120px; display: flex; flex-direction: column; width: 100%; }
         .play-detail-desc-body { font-size: 0.78rem; color: #9aa0a6; line-height: 1.5; text-align: justify; display: block; animation: fadeIn 0.15s ease-out; width: 100%; }
 
         .review-composer { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: left; }
@@ -935,6 +935,14 @@
                             <span class="settings-lock-badge" style="background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.2); color:#10b981;">✓ Verified</span>
                         </div>
                     </div>
+
+                    <div class="settings-input-group">
+                        <label class="settings-field-label">Join Date</label>
+                        <div class="settings-input-container" style="background:#16161a; border-color:#2a2a35; opacity:0.75;">
+                            <input type="text" id="settings-joindate-field" class="settings-native-input" readonly>
+                            <span class="settings-lock-badge">🔒 System</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="settings-card-segment">
@@ -1165,7 +1173,13 @@
             const bY = document.getElementById('birth-year').value;
             if(!u || !r || !e || !p || !g) return alert("Fill all fields");
             if(accounts.some(acc => acc.name.toLowerCase() === u.toLowerCase())) return alert("Username Taken!");
-            accounts.push({ name: u, displayName: u, robloxName: r, email: e, pass: p, birthday: `${bD}-${bM}-${bY}`, gender: g, role: "member", status: "Active", adminInstalled: false, nlsStudioInstalled: false, installedApps: {} });
+            
+            // Format dynamic Join Date generation metric values logic
+            const now = new Date();
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const formattedJoinDate = `${now.getDate()}-${months[now.getMonth()]}-${now.getFullYear()}`;
+
+            accounts.push({ name: u, displayName: u, robloxName: r, email: e, pass: p, birthday: `${bD}-${bM}-${bY}`, joinDate: formattedJoinDate, gender: g, role: "member", status: "Active", adminInstalled: false, nlsStudioInstalled: false, installedApps: {} });
             db.ref('accounts').set(accounts).then(() => { alert("Created!"); showScreen('login-screen'); });
         }
 
@@ -1213,6 +1227,7 @@
             document.getElementById('settings-displayname-field').value = currentUser.displayName || currentUser.name;
             document.getElementById('settings-username-field').value = currentUser.name || "";
             document.getElementById('settings-email-field').value = currentUser.email || "";
+            document.getElementById('settings-joindate-field').value = currentUser.joinDate || "28-May-2026";
             document.getElementById('settings-delete-verify-pass').value = "";
             
             const rawBirthdateString = currentUser.birthday || "28-May-2000";
@@ -2101,4 +2116,4 @@
         }
     </script>
 </body>
-                </html>
+</html>
