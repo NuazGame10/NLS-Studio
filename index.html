@@ -1095,7 +1095,8 @@
 
             let gridHtml = "";
 
-            if (currentUser.adminInstalled && role !== 'member') {
+            // Updated rule: Retain on screen if installed, regardless of present staff structure role bounds
+            if (currentUser.adminInstalled) {
                 gridHtml += `
                     <button class="app-item-icon" onclick="handleAppIconClick(event, 'admin')" onmousedown="handleAppIconHoldStart(event, 'admin')" onmouseup="handleAppIconHoldEnd(event)" onmouseleave="handleAppIconHoldEnd(event)" ontouchstart="handleAppIconHoldStart(event, 'admin')" ontouchend="handleAppIconHoldEnd(event)">
                         <div class="app-bubble">🛡️</div>
@@ -1103,7 +1104,8 @@
                     </button>`;
             }
 
-            if (currentUser.nlsStudioInstalled && role !== 'member') {
+            // Updated rule: Retain on screen if installed, regardless of present staff structure role bounds
+            if (currentUser.nlsStudioInstalled) {
                 gridHtml += `
                     <button class="app-item-icon" onclick="handleAppIconClick(event, 'nls-studio')" onmousedown="handleAppIconHoldStart(event, 'nls-studio')" onmouseup="handleAppIconHoldEnd(event)" onmouseleave="handleAppIconHoldEnd(event)" ontouchstart="handleAppIconHoldStart(event, 'nls-studio')" ontouchend="handleAppIconHoldEnd(event)">
                         <div class="app-bubble" style="border-color: rgba(56, 189, 248, 0.4);">🛠️</div>
@@ -1128,7 +1130,6 @@
                     if (currentUser.installedApps[appId] === true && releasedAppsList[appId]) {
                         const appData = releasedAppsList[appId];
                         
-                        // Strict validation filter logic protecting launcher window mapping protocols
                         if (!appData.name || appData.name.toLowerCase().includes("undefined")) return;
                         
                         gridHtml += `
@@ -1202,7 +1203,6 @@
                 return alert("Error: All operational runtime logic parameters must be finalized prior to store injection.");
             }
 
-            // Input Validation Shield Protocol protecting database entries from corrupted strings
             if (name.toLowerCase().includes("undefined") || packageId.toLowerCase().includes("undefined")) {
                 return alert("Error: Application deployment aborted. The metadata attributes contain blocked strings ('undefined').");
             }
@@ -1250,7 +1250,7 @@
         function renderDynamicStoreGrid() {
             if(!currentUser) return;
             let role = (currentUser.role || "member").toLowerCase();
-            if(role === "user") role = "member";
+            if(role === 'user') role = 'member';
 
             const grid = document.getElementById('store-dynamic-grid-render-target');
             if(!grid) return;
@@ -1273,7 +1273,6 @@
             Object.values(releasedAppsList).forEach(app => {
                 if(app.visibility === 'staff_recommendation' && role === 'member') return; 
 
-                // Dynamic filtering firewall preventing items named 'undefined' from compiling layouts
                 if (!app.name || app.name.toLowerCase().includes("undefined")) {
                     return; 
                 }
@@ -1340,7 +1339,6 @@
             } else {
                 const appData = releasedAppsList[appId];
                 if(appData) {
-                    // Fail-safe protection module breaking sequence if data structure maps directly to an undefined element
                     if (!appData.name || appData.name.toLowerCase().includes("undefined")) {
                         closeStoreDetailsPage();
                         return;
@@ -1618,6 +1616,20 @@
 
         function openAppDirectlyFromStore(appId) {
             closeStoreDetailsPage(); closeAndroidApp('store');
+            
+            // Core authentication firewall validation checks
+            let role = (currentUser.role || "member").toLowerCase();
+            if(role === "user") role = "member";
+            
+            if (appId === 'admin' && role === 'member') {
+                alert("Access Denied: Administrative operations protocols are locked to regular member accounts.");
+                return;
+            }
+            if (appId === 'nls-studio' && role === 'member') {
+                alert("Access Denied: Creator Terminal pipeline logic is locked to regular member accounts.");
+                return;
+            }
+
             if(appId === 'admin' || appId === 'nls-studio') {
                 launchAndroidApp(appId);
             } else {
@@ -1642,7 +1654,6 @@
             Object.values(releasedAppsList).forEach(app => {
                 const targetRow = document.getElementById(`store-row-${app.id}`);
                 if(targetRow) {
-                    // Force real-time hiding mechanism if corrupted name tags are indexed by search arrays
                     if (!app.name || app.name.toLowerCase().includes("undefined")) {
                         targetRow.style.display = "none";
                         return;
@@ -1737,13 +1748,14 @@
             let role = (currentUser.role || "member").toLowerCase();
             if(role === "user") role = "member";
             
-            if (appId === 'admin' && !currentUser.adminInstalled) {
-                alert("You must install the Admin Panel from the NLS Store first!");
-                launchAndroidApp('store'); openStoreDetailsPage('admin'); return;
+            // Authentication firewall protecting app launch boundaries directly
+            if (appId === 'admin' && role === 'member') {
+                alert("Access Denied: Core administration interfaces are strictly locked to authorized staff accounts.");
+                return;
             }
-            if (appId === 'nls-studio' && !currentUser.nlsStudioInstalled) {
-                alert("You must install NLS Studio for NLS Staff from the NLS Store first!");
-                launchAndroidApp('store'); openStoreDetailsPage('nls-studio'); return;
+            if (appId === 'nls-studio' && role === 'member') {
+                alert("Access Denied: Creator Terminal deployment architecture pipelines are restricted to authorized developer channels.");
+                return;
             }
 
             if (appId !== 'admin' && appId !== 'nls-studio' && appId !== 'settings' && appId !== 'store') {
